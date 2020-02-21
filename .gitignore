@@ -25,4 +25,3 @@ illyriad.properties
 illyriad.iml
 .idea/
 target/
-/src/main/resources/schema/temp.sql

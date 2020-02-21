@@ -1,50 +1,40 @@
-package net.lliira.illyriad.map;
+package net.lliira.illyriad.common.network;
 
+import net.lliira.illyriad.common.Constants;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
-/**
- * Login to the game, and retrieve the authenticated cookies for followup requests.
- * <p>
- * It expects the properties to have the following keys: {@value CRAWL_USERNAME_KEY}, {@value CRAWL_PASSWORD_KEY}.
- */
 public class Authenticator {
 
     private static class Response {
-
-        private final Map<String, String> mCookies;
-        private final Map<String, String> mFields;
+        private final Map<String, String> cookies;
+        private final Map<String, String> fields;
 
         Response(Map<String, String> cookies) {
-            mCookies = cookies;
-            mFields = new HashMap<>();
+            this.cookies = cookies;
+            fields = new HashMap<>();
         }
 
         Map<String, String> getCookies() {
-            return mCookies;
+            return cookies;
         }
 
         void putField(String fieldName, String fieldValue) {
-            mFields.put(fieldName, fieldValue);
+            fields.put(fieldName, fieldValue);
         }
 
         String getField(String fieldName) {
-            return mFields.get(fieldName);
+            return fields.get(fieldName);
         }
-
     }
-
-    private static final String CRAWL_USERNAME_KEY = "crawl.username";
-    private static final String CRAWL_PASSWORD_KEY = "crawl.password";
 
     private static final String LANDING_URL = Constants.BASE_URL + "/Account/LogOn?noRelog=1";
 
@@ -54,42 +44,41 @@ public class Authenticator {
     private static final String PLAYER_INPUT_FIELD = "player.input";
     private static final String PASSWORD_INPUT_FIELD = "password.input";
     private static final String REMEMBER_INPUT_FIELD = "remember_input";
-
     private static final String DEFAULT_REMEMBER = "0";
 
-    private static final Logger log = LoggerFactory.getLogger(Authenticator.class);
+    private static final long CHECK_INTERVAL_MILLIS = 5 * 60 * 1000;
 
-    private final String mCrawlUsername;
-    private final String mCrawlPassword;
+    private static final Logger logger = LogManager.getLogger();
 
-    private final Map<String, String> mCookies;
+    private final String loginName;
+    private final String password;
+    private final Map<String, String> cookies;
 
-    public Authenticator(Properties properties) {
-        mCrawlUsername = properties.getProperty(CRAWL_USERNAME_KEY);
-        mCrawlPassword = properties.getProperty(CRAWL_PASSWORD_KEY);
-        mCookies = new HashMap<>();
+    private long lastCheck;
+
+    public Authenticator(String loginName, String password) {
+        this.loginName = loginName;
+        this.password = password;
+        this.lastCheck = 0;
+        this.cookies = new HashMap<>();
     }
 
-    /**
-     * Login to the game, and get the authenticated cookies.
-     *
-     * @return returns the authenticated cookies.
-     */
-    public Map<String, String> login() throws IOException {
-        if (mCookies.isEmpty()) {
-            log.debug("Cookie is empty first time log in...");
-            Response landingResponse = callLandingUrl();
-            Response loginResponse = callLoginUrl(landingResponse);
-            if (verifyHomePage(loginResponse)) {
-                clearCookies();
-                mCookies.putAll(loginResponse.getCookies());
-            }
+    public synchronized Map<String, String> getCookies() throws IOException {
+        if (cookies.isEmpty() || (shouldCheckAgain() && !verifyHomePage())) {
+            login();
         }
-        return mCookies;
+        return Map.copyOf(cookies);
     }
 
-    public void clearCookies() {
-        mCookies.clear();
+    private boolean shouldCheckAgain() {
+        return (System.currentTimeMillis() - lastCheck > CHECK_INTERVAL_MILLIS);
+    }
+
+    private void login() throws IOException {
+        cookies.clear();
+        Response landingResponse = callLandingUrl();
+        Response loginResponse = callLoginUrl(landingResponse);
+        cookies.putAll(loginResponse.getCookies());
     }
 
     private Response callLandingUrl() throws IOException {
@@ -127,8 +116,8 @@ public class Authenticator {
 
         connection.data(landingResponse.getField(LOGIN_METHOD_INPUT_FIELD),
                 landingResponse.getField(LOGIN_METHOD_VALUE_FIELD))
-                .data(landingResponse.getField(PLAYER_INPUT_FIELD), mCrawlUsername)
-                .data(landingResponse.getField(PASSWORD_INPUT_FIELD), mCrawlPassword)
+                .data(landingResponse.getField(PLAYER_INPUT_FIELD), loginName)
+                .data(landingResponse.getField(PASSWORD_INPUT_FIELD), password)
                 .data(landingResponse.getField(REMEMBER_INPUT_FIELD), DEFAULT_REMEMBER)
                 .followRedirects(true)
                 .post();
@@ -136,9 +125,10 @@ public class Authenticator {
         return new Response(connection.response().cookies());
     }
 
-    private boolean verifyHomePage(Response loginResponse) throws IOException {
+    private boolean verifyHomePage() throws IOException {
         Connection connection = Jsoup.connect(Constants.BASE_URL);
-        Document document = connection.cookies(loginResponse.getCookies()).get();
+        Document document = connection.cookies(cookies).get();
+        lastCheck = System.currentTimeMillis();
 
         // check if the home page is valid
         return (document.select("div#TopNav").size() != 0);
