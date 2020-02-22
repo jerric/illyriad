@@ -1,4 +1,4 @@
-package net.lliira.illyriad.common.network;
+package net.lliira.illyriad.common.net;
 
 import net.lliira.illyriad.common.Constants;
 import org.apache.logging.log4j.LogManager;

@@ -1,4 +1,4 @@
-package net.lliira.illyriad.common.network;
+package net.lliira.illyriad.common.net;
 
 public enum ResponseType {
     Html("text/html"),
