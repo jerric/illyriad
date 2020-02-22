@@ -10,7 +10,6 @@ import java.util.Map;
 
 public abstract class RemoteCaller {
 
-  private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.116 Safari/537.36";
   private static final String XML_HTTP_REQUEST = "XMLHttpRequest";
 
   private final Authenticator authenticator;
