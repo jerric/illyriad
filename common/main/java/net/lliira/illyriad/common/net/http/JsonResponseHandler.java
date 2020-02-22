@@ -1,17 +1,18 @@
-package net.lliira.illyriad.common.net;
+package net.lliira.illyriad.common.net.http;
 
 import com.google.gson.Gson;
+import net.lliira.illyriad.common.net.http.HttpResponseHandler;
 import org.jsoup.Connection;
 
 import java.util.Optional;
 
-public class JsonResponseHandler<T> implements HttpResponseHandler<T> {
+public class JsonResponseHandler<O> implements HttpResponseHandler<O> {
   private static final String CONTENT_TYPE = "application/json";
 
   private final Gson gson;
-  private final Class<T> classOfT;
+  private final Class<O> classOfT;
 
-  public JsonResponseHandler(final Class<T> classOfT) {
+  public JsonResponseHandler(final Class<O> classOfT) {
     this.gson = new Gson();
     this.classOfT = classOfT;
   }
@@ -22,7 +23,7 @@ public class JsonResponseHandler<T> implements HttpResponseHandler<T> {
   }
 
   @Override
-  public Optional<T> produce(Connection.Response response) {
+  public Optional<O> produce(Connection.Response response) {
     if (response.contentType().contains(CONTENT_TYPE)) {
       return Optional.ofNullable(gson.fromJson(response.body(), classOfT));
     }

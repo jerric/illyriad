@@ -1,5 +1,6 @@
-package net.lliira.illyriad.common.net;
+package net.lliira.illyriad.common.net.http;
 
+import net.lliira.illyriad.common.net.http.HttpResponseHandler;
 import org.jsoup.Connection;
 import org.jsoup.nodes.Document;
 

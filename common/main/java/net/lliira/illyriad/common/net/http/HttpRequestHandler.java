@@ -1,4 +1,4 @@
-package net.lliira.illyriad.common.net;
+package net.lliira.illyriad.common.net.http;
 
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
