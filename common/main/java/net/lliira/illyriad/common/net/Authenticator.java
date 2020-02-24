@@ -1,136 +1,83 @@
 package net.lliira.illyriad.common.net;
 
-import net.lliira.illyriad.common.Constants;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.jsoup.Connection;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
-public class Authenticator {
+public class Authenticator implements HttpCookieHandler {
+  private static final String LANDING_URL = "/Account/LogOn?noRelog=1";
 
-    private static class Response {
-        private final Map<String, String> cookies;
-        private final Map<String, String> fields;
+  private static final String PLAYER_NAME_PROPERTY = "player.name";
+  private static final String PASSWORD_PROPERTY = "password";
 
-        Response(Map<String, String> cookies) {
-            this.cookies = cookies;
-            fields = new HashMap<>();
-        }
+  private static final String LOGIN_URL_FIELD = "login.url";
+  private static final String PLAYER_NAME_FIELD = "PlayerName";
+  private static final String PASSWORD_FIELD = "Password";
 
-        Map<String, String> getCookies() {
-            return cookies;
-        }
+  private final Map<String, String> cookies;
+  private final HttpClient.GetHtml landingClient;
+  private final String playerName;
+  private final String password;
 
-        void putField(String fieldName, String fieldValue) {
-            fields.put(fieldName, fieldValue);
-        }
+  public Authenticator(Properties properties) {
+    playerName = properties.getProperty(PLAYER_NAME_PROPERTY);
+    password = properties.getProperty(PASSWORD_PROPERTY);
+    cookies = new HashMap<>();
+    landingClient = new HttpClient.GetHtml(LANDING_URL, this);
+  }
 
-        String getField(String fieldName) {
-            return fields.get(fieldName);
-        }
-    }
+  @Override
+  public Map<String, String> cookies() {
+    return cookies;
+  }
 
-    private static final String LANDING_URL = Constants.BASE_URL + "/Account/LogOn?noRelog=1";
+  public void login() {
+    cookies.clear();
 
-    private static final String LOGIN_URL_FIELD = "login.url";
-    private static final String LOGIN_METHOD_INPUT_FIELD = "login.method.input";
-    private static final String LOGIN_METHOD_VALUE_FIELD = "login.method.value";
-    private static final String PLAYER_INPUT_FIELD = "player.input";
-    private static final String PASSWORD_INPUT_FIELD = "password.input";
-    private static final String REMEMBER_INPUT_FIELD = "remember_input";
-    private static final String DEFAULT_REMEMBER = "0";
+    // Call landing page to get login fields
+    var landingResponse = landingClient.call(Map.of());
+    cookies.putAll(landingResponse.cookies);
+    assert landingResponse.ouput.isPresent();
+    var loginFields = parseLandingResponse(landingResponse.ouput.get());
 
-    private static final long CHECK_INTERVAL_MILLIS = 5 * 60 * 1000;
+    // Prepare data to call login
+    var loginUrl = loginFields.get(LOGIN_URL_FIELD);
+    var loginClient = new HttpClient.PostEmpty(loginUrl, this);
+    var loginData = prepareLoginData(loginFields);
 
-    private static final Logger logger = LogManager.getLogger();
+    // Call login, and save the cookie;
+    var loginResponse = loginClient.call(loginData);
+    cookies.clear();
+    cookies.putAll(loginResponse.cookies);
+  }
 
-    private final String loginName;
-    private final String password;
-    private final Map<String, String> cookies;
+  private Map<String, String> parseLandingResponse(Document document) {
+    var loginFields = new HashMap<String, String>();
+    Element formElement = document.select("form#frmLogin").first();
+    loginFields.put(LOGIN_URL_FIELD, formElement.attr("action"));
+    formElement.select("input").forEach(input -> loginFields.put(input.attr("name"), input.val()));
+    formElement
+        .select("select")
+        .forEach(
+            select -> loginFields.put(select.attr("name"), select.select("option").first().val()));
+    assert loginFields.containsKey(PLAYER_NAME_FIELD);
+    assert loginFields.containsKey(PASSWORD_PROPERTY);
+    return loginFields;
+  }
 
-    private long lastCheck;
-
-    public Authenticator(String loginName, String password) {
-        this.loginName = loginName;
-        this.password = password;
-        this.lastCheck = 0;
-        this.cookies = new HashMap<>();
-    }
-
-    public synchronized Map<String, String> getCookies() throws IOException {
-        if (cookies.isEmpty() || (shouldCheckAgain() && !verifyHomePage())) {
-            login();
-        }
-        return Map.copyOf(cookies);
-    }
-
-    private boolean shouldCheckAgain() {
-        return (System.currentTimeMillis() - lastCheck > CHECK_INTERVAL_MILLIS);
-    }
-
-    private void login() throws IOException {
-        cookies.clear();
-        Response landingResponse = callLandingUrl();
-        Response loginResponse = callLoginUrl(landingResponse);
-        cookies.putAll(loginResponse.getCookies());
-    }
-
-    private Response callLandingUrl() throws IOException {
-        // call landing url, get the cookie, and parse the login field
-        Connection connection = Jsoup.connect(LANDING_URL);
-        Document document = connection.get();
-        Response response = new Response(connection.response().cookies());
-
-        // parse the login field
-        Element formElement = document.select("form#frmLogin").first();
-        response.putField(LOGIN_URL_FIELD, formElement.attr("action"));
-
-        Element loginMethodField = formElement.select("select#authMethod").first();
-        String loginMethodName = formElement.select("select#authMethod").attr("name");
-        response.putField(LOGIN_METHOD_INPUT_FIELD, loginMethodName);
-        String loginMethodValue = loginMethodField.select("option").first().attr("value");
-        response.putField(LOGIN_METHOD_VALUE_FIELD, loginMethodValue);
-
-        String playerInputName = formElement.select("input#txtPlayerName").first().attr("name");
-        response.putField(PLAYER_INPUT_FIELD, playerInputName);
-
-        String passwordInputName = formElement.select("input#txtPassword").first().attr("name");
-        response.putField(PASSWORD_INPUT_FIELD, passwordInputName);
-
-        String rememberInputName = formElement.select("input#chkRemember").first().attr("name");
-        response.putField(REMEMBER_INPUT_FIELD, rememberInputName);
-
-        return response;
-    }
-
-    private Response callLoginUrl(Response landingResponse) throws IOException {
-        // call login url
-        String loginUrl = Constants.BASE_URL + landingResponse.getField(LOGIN_URL_FIELD);
-        Connection connection = Jsoup.connect(loginUrl);
-
-        connection.data(landingResponse.getField(LOGIN_METHOD_INPUT_FIELD),
-                landingResponse.getField(LOGIN_METHOD_VALUE_FIELD))
-                .data(landingResponse.getField(PLAYER_INPUT_FIELD), loginName)
-                .data(landingResponse.getField(PASSWORD_INPUT_FIELD), password)
-                .data(landingResponse.getField(REMEMBER_INPUT_FIELD), DEFAULT_REMEMBER)
-                .followRedirects(true)
-                .post();
-
-        return new Response(connection.response().cookies());
-    }
-
-    private boolean verifyHomePage() throws IOException {
-        Connection connection = Jsoup.connect(Constants.BASE_URL);
-        Document document = connection.cookies(cookies).get();
-        lastCheck = System.currentTimeMillis();
-
-        // check if the home page is valid
-        return (document.select("div#TopNav").size() != 0);
-    }
+  private Map<String, String> prepareLoginData(Map<String, String> loginFields) {
+    var loginData = new HashMap<String, String>(loginFields.size() - 1);
+    loginFields.forEach(
+        (name, value) -> {
+          if (!name.equals(LOGIN_URL_FIELD)) {
+            if (name.equals(PLAYER_NAME_FIELD)) value = playerName;
+            else if (name.equals(PASSWORD_FIELD)) value = password;
+            loginData.put(name, value);
+          }
+        });
+    return loginData;
+  }
 }

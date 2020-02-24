@@ -9,10 +9,21 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
-abstract class HttpRequestHandler<T> {
+public interface HttpRequestHandler<I> {
+  Connection open(String url, I input);
 
-  private static final String USER_AGENT =
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.116 Safari/537.36";
+  HttpRequestHandler<Map<String, String>> GET =
+      (url, queryParams) -> {
+        for (var param : queryParams.entrySet()) {
+          url = url.replaceAll(Pattern.quote(param.getKey()), param.getValue());
+        }
+        return Jsoup.connect(url).method(Connection.Method.GET);
+      };
+
+  HttpRequestHandler<Map<String, String>> POST =
+      (url, data) -> Jsoup.connect(url).method(Connection.Method.POST).data(data);
+}
+/*
 
   private final HttpResponseHandler<T> responseHandler;
   private final String url;
@@ -56,3 +67,4 @@ abstract class HttpRequestHandler<T> {
     }
   }
 }
+*/

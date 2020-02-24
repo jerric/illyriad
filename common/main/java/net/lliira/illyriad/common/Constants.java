@@ -5,7 +5,6 @@ package net.lliira.illyriad.common;
  */
 public final class Constants {
 
-    public static final String BASE_URL = "https://elgea.illyriad.co.uk";
 
 
 
