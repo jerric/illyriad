@@ -27,7 +27,7 @@ public class Deposit extends Location<Deposit.Builder> {
       type = deposit.type;
     }
 
-    public Builder setType(DepositType type) {
+    public Builder type(DepositType type) {
       this.type = type;
       return this;
     }
@@ -54,11 +54,11 @@ public class Deposit extends Location<Deposit.Builder> {
     private static final Map<Integer, DepositType> DEPOSIT_TYPES =
         Arrays.stream(values()).collect(Collectors.toMap(type -> type.code, type -> type));
 
-    public static DepositType valueOf(int code) {
+    public static DepositType parse(int code) {
       return DEPOSIT_TYPES.getOrDefault(code, UNKNOWN);
     }
 
-    private final int code;
+    public final int code;
 
     DepositType(int code) {
       this.code = code;

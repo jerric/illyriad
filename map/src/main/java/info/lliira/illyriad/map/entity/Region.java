@@ -90,11 +90,11 @@ public enum Region {
     private static final Map<Integer, Region> REGIONS =
         Arrays.stream(values()).collect(Collectors.toMap(region -> region.code, region -> region));
 
-    public static Region valueOf(int code) {
+    public static Region parse(int code) {
         return REGIONS.getOrDefault(code, UNKNOWN);
     }
 
-    private final int code;
+    public final int code;
 
     Region(int code) {
         this.code = code;

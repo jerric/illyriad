@@ -26,7 +26,7 @@ public class Progress extends Location<Progress.Builder> {
             lastUpdated = progress.lastUpdated;
         }
 
-        public Builder setLastUpdated(Date lastUpdated) {
+        public Builder lastUpdated(Date lastUpdated) {
             this.lastUpdated = lastUpdated;
             return this;
         }

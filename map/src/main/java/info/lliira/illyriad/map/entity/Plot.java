@@ -8,7 +8,7 @@ public class Plot extends Location<Plot.Builder> {
     public final int food;
     public final int total;
     public final int background;
-    public final int plotType;
+    public final String type;
     public final int layer;
     public final Region region;
     public final boolean sovable;
@@ -26,7 +26,7 @@ public class Plot extends Location<Plot.Builder> {
             int food,
             int total,
             int background,
-            int plotType,
+            String type,
             int layer,
             Region region,
             boolean sovable,
@@ -42,7 +42,7 @@ public class Plot extends Location<Plot.Builder> {
         this.food = food;
         this.total = total;
         this.background = background;
-        this.plotType = plotType;
+        this.type = type;
         this.layer = layer;
         this.region = region;
         this.sovable = sovable;
@@ -64,7 +64,7 @@ public class Plot extends Location<Plot.Builder> {
         private int stone;
         private int food;
         private int background;
-        private int plotType;
+        private String plotType;
         private int layer;
         private Region region;
         private boolean sovable;
@@ -83,7 +83,7 @@ public class Plot extends Location<Plot.Builder> {
             stone = plot.stone;
             food = plot.food;
             background = plot.background;
-            plotType = plot.plotType;
+            plotType = plot.type;
             layer = plot.layer;
             region = plot.region;
             sovable = plot.sovable;
@@ -93,72 +93,72 @@ public class Plot extends Location<Plot.Builder> {
             brg = plot.brg;
         }
 
-        public Builder setWood(int wood) {
+        public Builder wood(int wood) {
             this.wood = wood;
             return this;
         }
 
-        public Builder setClay(int clay) {
+        public Builder clay(int clay) {
             this.clay = clay;
             return this;
         }
 
-        public Builder setIron(int iron) {
+        public Builder iron(int iron) {
             this.iron = iron;
             return this;
         }
 
-        public Builder setStone(int stone) {
+        public Builder stone(int stone) {
             this.stone = stone;
             return this;
         }
 
-        public Builder setFood(int food) {
+        public Builder food(int food) {
             this.food = food;
             return this;
         }
 
-        public Builder setBackground(int background) {
+        public Builder background(int background) {
             this.background = background;
             return this;
         }
 
-        public Builder setPlotType(int plotType) {
+        public Builder type(String plotType) {
             this.plotType = plotType;
             return this;
         }
 
-        public Builder setLayer(int layer) {
+        public Builder layer(int layer) {
             this.layer = layer;
             return this;
         }
 
-        public Builder setRegion(Region region) {
+        public Builder region(Region region) {
             this.region = region;
             return this;
         }
 
-        public Builder setSovable(boolean sovable) {
+        public Builder sovable(boolean sovable) {
             this.sovable = sovable;
             return this;
         }
 
-        public Builder setPassable(boolean passable) {
+        public Builder passable(boolean passable) {
             this.passable = passable;
             return this;
         }
 
-        public Builder setHospital(boolean hospital) {
+        public Builder hospital(boolean hospital) {
             this.hospital = hospital;
             return this;
         }
 
-        public Builder setNpc(boolean npc) {
+        public Builder npc(boolean npc) {
             this.npc = npc;
             return this;
         }
 
-        public Builder setBrg(boolean brg) {
+        public Builder brg(boolean brg) {
             this.brg = brg;
             return this;
         }

@@ -14,9 +14,6 @@ public abstract class Location<B extends Location.Builder<?>> extends Point impl
         protected int x;
         protected int y;
 
-        @Override
-        public abstract E build();
-
         protected Builder() {}
 
         protected Builder(E location) {
@@ -34,19 +31,19 @@ public abstract class Location<B extends Location.Builder<?>> extends Point impl
             return this;
         }
 
+        public Builder<E> coordinate(String coordinate) {
+            String[] parts = coordinate.split("\\|");
+            this.x = Integer.parseInt(parts[1]);
+            this.y = Integer.parseInt(parts[0]);
+            return this;
+        }
+
         public int x() {
             return x;
         }
 
         public int y() {
             return y;
-        }
-
-        public Builder<E> coordinate(String coordinate) {
-            String[] parts = coordinate.split("\\|");
-            this.x = Integer.parseInt(parts[1]);
-            this.y = Integer.parseInt(parts[0]);
-            return this;
         }
     }
 }

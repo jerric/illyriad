@@ -1,9 +1,9 @@
 package info.lliira.illyriad.map.storage;
 
-import net.lliira.illyriad.map.model.DepositType;
-import net.lliira.illyriad.map.model.Race;
-import net.lliira.illyriad.map.model.Region;
-import net.lliira.illyriad.map.model.ResourceType;
+import info.lliira.illyriad.map.entity.Deposit;
+import info.lliira.illyriad.map.entity.Region;
+import info.lliira.illyriad.map.entity.Resource;
+import info.lliira.illyriad.map.entity.Town;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -23,21 +23,21 @@ class FieldType<T> {
             (statement, index, value) -> statement.setTimestamp(index, new Timestamp(value.getTime())),
             ResultSet::getTimestamp);
 
-    static final FieldType<Race> RACE = new FieldType<>(
-            (statement, index, value) -> statement.setInt(index, value.getCode()),
-            (resultSet, fieldName) -> Race.valueOf(resultSet.getInt(fieldName)));
+    static final FieldType<Town.Race> RACE = new FieldType<>(
+            (statement, index, value) -> statement.setInt(index, value.code),
+            (resultSet, fieldName) -> Town.Race.parse(resultSet.getInt(fieldName)));
 
     static final FieldType<Region> REGION = new FieldType<>(
-            (statement, index, value) -> statement.setInt(index, value.getCode()),
-            (resultSet, fieldName) -> Region.valueOf(resultSet.getInt(fieldName)));
+            (statement, index, value) -> statement.setInt(index, value.code),
+            (resultSet, fieldName) -> Region.parse(resultSet.getInt(fieldName)));
 
-    static final FieldType<ResourceType> RESOURCE_TYPE = new FieldType<>(
-            (statement, index, value) -> statement.setInt(index, value.getCode()),
-            (resultSet, fieldName) -> ResourceType.valueOf(resultSet.getInt(fieldName)));
+    static final FieldType<Resource.ResourceType> RESOURCE_TYPE = new FieldType<>(
+            (statement, index, value) -> statement.setInt(index, value.code),
+            (resultSet, fieldName) -> Resource.ResourceType.parse(resultSet.getInt(fieldName)));
 
-    static final FieldType<DepositType> DEPOSIT_TYPE = new FieldType<>(
-            (statement, index, value) -> statement.setInt(index, value.getCode()),
-            (resultSet, fieldName) -> DepositType.valueOf(resultSet.getInt(fieldName)));
+    static final FieldType<Deposit.DepositType> DEPOSIT_TYPE = new FieldType<>(
+            (statement, index, value) -> statement.setInt(index, value.code),
+            (resultSet, fieldName) -> Deposit.DepositType.parse(resultSet.getInt(fieldName)));
 
     private final FieldSetter<T> setter;
     private final FieldGetter<T> getter;

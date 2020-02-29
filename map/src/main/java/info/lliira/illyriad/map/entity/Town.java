@@ -77,7 +77,7 @@ public class Town extends Location<Town.Builder> {
     private boolean abandoned;
     private String data;
 
-    private Builder() {}
+    public Builder() {}
 
     private Builder(Town town) {
       super(town);
@@ -96,66 +96,67 @@ public class Town extends Location<Town.Builder> {
       data = town.data;
     }
 
-    public Builder setId(int id) {
+    public Builder id(int id) {
       this.id = id;
       return this;
     }
 
-    public Builder setName(String name) {
+    public Builder name(String name) {
       this.name = name;
       return this;
     }
 
-    public Builder setOwnerId(int ownerId) {
+    public Builder ownerId(int ownerId) {
       this.ownerId = ownerId;
       return this;
     }
 
-    public Builder setOwnerName(String ownerName) {
+    public Builder ownerName(String ownerName) {
       this.ownerName = ownerName;
       return this;
     }
 
-    public Builder setPopulation(int population) {
+    public Builder population(int population) {
       this.population = population;
       return this;
     }
 
-    public Builder setAlliance(String alliance) {
+    public Builder alliance(String alliance) {
       this.alliance = alliance;
       return this;
     }
 
-    public Builder setRegion(Region region) {
+    public Builder region(Region region) {
       this.region = region;
       return this;
     }
 
-    public Builder setRace(Race race) {
+    public Builder race(Race race) {
       this.race = race;
       return this;
     }
 
-    public Builder setCapital(boolean capital) {
+    public Builder capital(boolean capital) {
       this.capital = capital;
       return this;
     }
 
-    public Builder setProtection(boolean protection) {
+    public Builder protection(boolean protection) {
       this.protection = protection;
       return this;
     }
 
-    public Builder setMisc1(boolean misc1) {
+    public Builder misc1(boolean misc1) {
       this.misc1 = misc1;
       return this;
     }
 
-    public void setAbandoned(boolean abandoned) {
+    public Builder abandoned(boolean abandoned) {
       this.abandoned = abandoned;
+      return this;
     }
 
-    public Builder setData(String data) {
+    public Builder data(String data) {
       this.data = data;
       return this;
     }
@@ -190,13 +191,13 @@ public class Town extends Location<Town.Builder> {
     private static final Map<Integer, Race> RACES =
         Arrays.stream(values()).collect(Collectors.toMap(race -> race.code, race -> race));
 
-    public static Race valueOf(int code) {
+    public static Race parse(int code) {
       var race = RACES.get(code);
       if (race == null) throw new IndexOutOfBoundsException("Invalid race code: " + code);
       else return race;
     }
 
-    private final int code;
+    public final int code;
 
     Race(int code) {
       this.code = code;

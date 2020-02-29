@@ -35,17 +35,17 @@ public class Resource extends Location<Resource.Builder> {
       r = resource.r;
     }
 
-    public Builder setType(ResourceType type) {
+    public Builder type(ResourceType type) {
       this.type = type;
       return this;
     }
 
-    public Builder setRd(String rd) {
+    public Builder rd(String rd) {
       this.rd = rd;
       return this;
     }
 
-    public Builder setR(int r) {
+    public Builder r(int r) {
       this.r = r;
       return this;
     }
@@ -68,11 +68,11 @@ public class Resource extends Location<Resource.Builder> {
     private static final Map<Integer, ResourceType> RESOURCE_TYPES =
         Arrays.stream(values()).collect(Collectors.toMap(type -> type.code, type -> type));
 
-    public static ResourceType valueOf(int code) {
+    public static ResourceType parse(int code) {
       return RESOURCE_TYPES.getOrDefault(code, UNKNOWN);
     }
 
-    private final int code;
+    public final int code;
 
     ResourceType(int code) {
       this.code = code;

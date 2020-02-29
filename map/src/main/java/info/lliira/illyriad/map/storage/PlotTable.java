@@ -1,35 +1,34 @@
 package info.lliira.illyriad.map.storage;
 
-import com.google.common.collect.ImmutableList;
-import net.lliira.illyriad.map.model.Plot;
+import info.lliira.illyriad.map.entity.Plot;
 
 import java.sql.Connection;
-import java.sql.SQLException;
+import java.util.List;
 
 public class PlotTable extends LocationTable<Plot, Plot.Builder> {
+  private static final List<Field<Plot, Plot.Builder, ?>> DATA_FIELDS =
+      List.of(
+          new Field<>("wood", FieldType.INT, p -> p.wood, Plot.Builder::wood),
+          new Field<>("clay", FieldType.INT, p -> p.clay, Plot.Builder::clay),
+          new Field<>("iron", FieldType.INT, p -> p.iron, Plot.Builder::iron),
+          new Field<>("stone", FieldType.INT, p -> p.stone, Plot.Builder::stone),
+          new Field<>("food", FieldType.INT, p -> p.food, Plot.Builder::food),
+          new Field<>("background", FieldType.INT, p -> p.background, Plot.Builder::background),
+          new Field<>("plot_type", FieldType.STRING, p -> p.type, Plot.Builder::type),
+          new Field<>("layer", FieldType.INT, p -> p.layer, Plot.Builder::layer),
+          new Field<>("region", FieldType.REGION, p -> p.region, Plot.Builder::region),
+          new Field<>("sovable", FieldType.BOOLEAN, p -> p.sovable, Plot.Builder::sovable),
+          new Field<>("passable", FieldType.BOOLEAN, p -> p.passable, Plot.Builder::passable),
+          new Field<>("hospital", FieldType.BOOLEAN, p -> p.hospital, Plot.Builder::hospital),
+          new Field<>("npc", FieldType.BOOLEAN, p -> p.npc, Plot.Builder::npc),
+          new Field<>("brg", FieldType.BOOLEAN, p -> p.brg, Plot.Builder::brg));
 
-    private static final ImmutableList<Field<Plot, Plot.Builder, ?>> DATA_FIELDS = ImmutableList.of(
-            new Field<>("wood", FieldType.INT, Plot::getWood, Plot.Builder::setWood),
-            new Field<>("clay", FieldType.INT, Plot::getClay, Plot.Builder::setClay),
-            new Field<>("iron", FieldType.INT, Plot::getIron, Plot.Builder::setIron),
-            new Field<>("stone", FieldType.INT, Plot::getStone, Plot.Builder::setStone),
-            new Field<>("food", FieldType.INT, Plot::getFood, Plot.Builder::setFood),
-            new Field<>("background", FieldType.INT, Plot::getBackground, Plot.Builder::setBackground),
-            new Field<>("plot_type", FieldType.INT, Plot::getPlotType, Plot.Builder::setPlotType),
-            new Field<>("layer", FieldType.INT, Plot::getLayer, Plot.Builder::setLayer),
-            new Field<>("region", FieldType.REGION, Plot::getRegion, Plot.Builder::setRegion),
-            new Field<>("sovable", FieldType.BOOLEAN, Plot::isSovable, Plot.Builder::setSovable),
-            new Field<>("passable", FieldType.BOOLEAN, Plot::isPassable, Plot.Builder::setPassable),
-            new Field<>("hospital", FieldType.BOOLEAN, Plot::isHospital, Plot.Builder::setHospital),
-            new Field<>("npc", FieldType.BOOLEAN, Plot::isNpc, Plot.Builder::setNpc),
-            new Field<>("brg", FieldType.BOOLEAN, Plot::isBrg, Plot.Builder::setBrg));
+  PlotTable(Connection connection)  {
+    super(connection, "plots", DATA_FIELDS);
+  }
 
-    PlotTable(Connection connection) throws SQLException {
-        super(connection, "plots", DATA_FIELDS);
-    }
-
-    @Override
-    public Plot.Builder newBuilder() {
-        return Plot.builder();
-    }
+  @Override
+  public Plot.Builder newBuilder() {
+    return new Plot.Builder();
+  }
 }

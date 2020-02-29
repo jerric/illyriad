@@ -1,26 +1,23 @@
 package info.lliira.illyriad.map.storage;
 
-import com.google.common.collect.ImmutableList;
-import net.lliira.illyriad.map.model.Location;
-import net.lliira.illyriad.map.model.Resource;
+import info.lliira.illyriad.map.entity.Resource;
 
 import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Set;
+import java.util.List;
 
 public class ResourceTable extends LocationTable<Resource, Resource.Builder> {
+  private static final List<Field<Resource, Resource.Builder, ?>> DATA_FIELDS =
+      List.of(
+          new Field<>("type", FieldType.RESOURCE_TYPE, r -> r.type, Resource.Builder::type),
+          new Field<>("rd", FieldType.STRING, r -> r.rd, Resource.Builder::rd),
+          new Field<>("r", FieldType.INT, r -> r.r, Resource.Builder::r));
 
-    private static final ImmutableList<Field<Resource, Resource.Builder, ?>> DATA_FIELDS = ImmutableList.of(
-            new Field<>("type", FieldType.RESOURCE_TYPE, Resource::getType, Resource.Builder::setType),
-            new Field<>("rd", FieldType.STRING, Resource::getRd, Resource.Builder::setRd),
-            new Field<>("r", FieldType.INT, Resource::getR, Resource.Builder::setR));
+  ResourceTable(Connection connection)  {
+    super(connection, "resources", DATA_FIELDS);
+  }
 
-    ResourceTable(Connection connection) throws SQLException {
-        super(connection, "resources", DATA_FIELDS);
-    }
-
-    @Override
-    public Resource.Builder newBuilder() {
-        return Resource.builder();
-    }
+  @Override
+  public Resource.Builder newBuilder() {
+    return new Resource.Builder();
+  }
 }

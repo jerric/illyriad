@@ -1,24 +1,23 @@
 package info.lliira.illyriad.map.storage;
 
-import com.google.common.collect.ImmutableList;
-import net.lliira.illyriad.map.model.Creature;
+import info.lliira.illyriad.map.entity.Creature;
 
 import java.sql.Connection;
-import java.sql.SQLException;
+import java.util.List;
 
 public class CreatureTable extends LocationTable<Creature, Creature.Builder> {
+  private static final List<Field<Creature, Creature.Builder, ?>> DATA_FIELDS =
+      List.of(
+          new Field<>("id", FieldType.STRING, c -> c.id, Creature.Builder::id),
+          new Field<>("name", FieldType.STRING, c -> c.name, Creature.Builder::name),
+          new Field<>("amount", FieldType.STRING, c -> c.amount, Creature.Builder::amount));
 
-    private static final ImmutableList<Field<Creature, Creature.Builder, ?>> DATA_FIELDS = ImmutableList.of(
-            new Field<>("id", FieldType.STRING, Creature::getId, Creature.Builder::setId),
-            new Field<>("name", FieldType.STRING, Creature::getName, Creature.Builder::setName),
-            new Field<>("amount", FieldType.STRING, Creature::getAmount, Creature.Builder::setAmount));
+  CreatureTable(Connection connection) {
+    super(connection, "creatures", DATA_FIELDS);
+  }
 
-    CreatureTable(Connection connection) throws SQLException {
-        super(connection, "creatures", DATA_FIELDS);
-    }
-
-    @Override
-    public Creature.Builder newBuilder() {
-        return Creature.builder();
-    }
+  @Override
+  public Creature.Builder newBuilder() {
+    return new Creature.Builder();
+  }
 }

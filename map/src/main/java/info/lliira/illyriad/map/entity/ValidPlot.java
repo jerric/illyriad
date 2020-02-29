@@ -35,22 +35,22 @@ public class ValidPlot extends Location<ValidPlot.Builder> {
             restricted = validPlot.restricted;
         }
 
-        public Builder setResourceSum(int resourceSum) {
+        public Builder resourceSum(int resourceSum) {
             this.resourceSum = resourceSum;
             return this;
         }
 
-        public Builder setFoodSum(int foodSum) {
+        public Builder foodSum(int foodSum) {
             this.foodSum = foodSum;
             return this;
         }
 
-        public Builder setSovereignCount(int sovereignCount) {
+        public Builder sovereignCount(int sovereignCount) {
             this.sovereignCount = sovereignCount;
             return this;
         }
 
-        public Builder setRestricted(boolean restricted) {
+        public Builder restricted(boolean restricted) {
             this.restricted = restricted;
             return this;
         }

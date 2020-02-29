@@ -6,7 +6,6 @@ import java.util.Iterator;
 import java.util.function.Function;
 
 public class ResultSetIterator<E> implements Iterator<E> {
-
     private final ResultSet resultSet;
     private Function<ResultSet, E> converter;
     private E next;
