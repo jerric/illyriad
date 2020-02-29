@@ -29,7 +29,7 @@ public class CrawlTask implements Runnable {
   public static final AtomicLong PENDING_TASKS = new AtomicLong(0);
 
   private static final String MAP_DATA_URL = "/World/MapData";
-  private static final long MAX_DELAY_MS = 1000;
+  private static final int MAX_DELAY_MS = 500;
   private static final Logger LOG = LogManager.getLogger(CrawlTask.class.getSimpleName());
   private static final Map<Type, JsonDeserializer<?>> DESERIALIZERS =
       Map.of(MapData.Stub.class, new StubDeserializer());
@@ -61,7 +61,7 @@ public class CrawlTask implements Runnable {
   public void run() {
     try {
       // introduce a bit of delayed start
-      Thread.sleep(MAX_DELAY_MS);
+      Thread.sleep(random.nextInt(MAX_DELAY_MS));
 
       var mapData = fetch();
       saveMapData(mapData);
