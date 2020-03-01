@@ -20,7 +20,7 @@ class Field<E extends Entity<B>, B extends Entity.Builder<E>, T> {
     this.setter = setter;
   }
 
-  String getName() {
+  String name() {
     return name;
   }
 

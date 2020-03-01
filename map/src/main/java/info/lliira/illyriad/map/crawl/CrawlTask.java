@@ -25,8 +25,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static info.lliira.illyriad.common.Constants.ZOOM;
 
-public class CrawlTask implements Runnable {
-  public static final AtomicLong PENDING_TASKS = new AtomicLong(0);
+ class CrawlTask implements Runnable {
+   static final AtomicLong PENDING_TASKS = new AtomicLong(0);
 
   private static final String MAP_DATA_URL = "/World/MapData";
   private static final int MAX_DELAY_MS = 500;
@@ -43,7 +43,7 @@ public class CrawlTask implements Runnable {
   private final int minY;
   private final int maxY;
 
-  public CrawlTask(StorageFactory storageFactory, Authenticator authenticator, Point center) {
+   CrawlTask(StorageFactory storageFactory, Authenticator authenticator, Point center) {
     this.storageFactory = storageFactory;
     this.random = new Random();
     this.center = center;
@@ -87,32 +87,27 @@ public class CrawlTask implements Runnable {
   }
 
   private void saveMapData(MapData mapData) {
-    insertLocations(mapData.creatures(), storageFactory.creatureTable());
-    insertLocations(mapData.deposits(), storageFactory.depositTable());
-    insertLocations(mapData.plots(), storageFactory.plotTable());
-    insertLocations(mapData.resources(), storageFactory.resourceTable());
-    insertLocations(mapData.towns(), storageFactory.townTable());
+    upsert(mapData.creatures(), storageFactory.creatureTable());
+    upsert(mapData.deposits(), storageFactory.depositTable());
+    upsert(mapData.plots(), storageFactory.plotTable());
+    upsert(mapData.resources(), storageFactory.resourceTable());
+    upsert(mapData.towns(), storageFactory.townTable());
   }
 
-  private <E extends Location<B>, B extends Location.Builder<E>> void insertLocations(
+  private <E extends Location<B>, B extends Location.Builder<E>> void upsert(
       Collection<E> locations, LocationTable<E, B> table) {
     synchronized (table) {
       // remove everything in range.
       table.delete(minX, minY, maxX, maxY);
-      // remove also the out of range items
-      locations.stream()
-          .filter(l -> l.x < minX || l.x > maxX || l.y < minY || l.y > maxY)
-          .forEach(table::addDeleteBatch);
-      table.executeDeleteBatch();
 
-      locations.forEach(table::addInsertBatch);
-      table.executeInsertBatch();
+      locations.forEach(table::addUpsertBatch);
+      table.executeUpsertBatch();
     }
   }
 
   private void saveProgress() {
     ProgressTable progressTable = storageFactory.progressTable();
-    progressTable.insert(
+    progressTable.upsert(
         new Progress.Builder().lastUpdated(new Date()).x(center.x).y(center.y).build());
   }
 

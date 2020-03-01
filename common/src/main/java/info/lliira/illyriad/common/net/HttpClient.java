@@ -39,11 +39,13 @@ public abstract class HttpClient<I, O> {
     Connection connection =
         requestHandler
             .open(url, input)
+            .maxBodySize(0)
+            .timeout(60)
             .followRedirects(true)
             .ignoreContentType(true)
             // Set common headers
-            .header("referer", BASE_URL)
-            .header("user-agent", USER_AGENT)
+            .referrer(BASE_URL)
+            .userAgent(USER_AGENT)
             .header("x-requested-with", XML_HTTP_REQUEST)
             // Set cookies
             .cookies(cookieHandler.cookies());

@@ -51,7 +51,7 @@ public abstract class LocationTable<E extends Location<B>, B extends Location.Bu
         "DELETE FROM " + tableName + " WHERE x >= ? AND x <= ? AND y >= ? AND y <= ?");
   }
 
-  public Optional<E> select(int x, int y) throws SQLException {
+  public Optional<E> select(int x, int y)  {
     return select(newBuilder().x(x).y(y).build());
   }
 
