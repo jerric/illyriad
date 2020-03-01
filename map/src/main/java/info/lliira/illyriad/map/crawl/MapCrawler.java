@@ -61,7 +61,7 @@ public class MapCrawler {
     while ((pending = CrawlTask.PENDING_TASKS.get()) > 0) {
       LOG.info(
           "Plot crawler tasks progress: {}/{}({}%)",
-          pending, total, Math.round(1.0 * (total - pending) / total * 10000) / 100.0);
+          total - pending, total, Math.round(1.0 * (total - pending) / total * 10000) / 100.0);
       try {
         Thread.sleep(TimeUnit.SECONDS.toMillis(10));
       } catch (InterruptedException ignore) {
