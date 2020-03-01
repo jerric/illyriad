@@ -23,7 +23,7 @@ import static info.lliira.illyriad.common.Constants.ZOOM;
 
 public class MapCrawler {
 
-  public static void main(String[] args) throws IOException, SQLException, ClassNotFoundException {
+  public static void main(String[] args) throws IOException, SQLException {
     Properties properties = new Properties();
     properties.load(new FileReader(new File(Constants.PROPERTY_FILE)));
     var authenticator = new Authenticator(properties);
