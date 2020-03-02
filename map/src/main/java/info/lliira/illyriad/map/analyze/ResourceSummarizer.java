@@ -13,23 +13,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
 public class ResourceSummarizer {
-
-  private static class PlotData {
-    private final int food;
-    private final int total;
-    private final boolean sovable;
-
-    private PlotData(int food, int total, boolean sovable) {
-      this.food = food;
-      this.total = total;
-      this.sovable = sovable;
-    }
-  }
 
   private static final Logger LOG = LogManager.getLogger(ResourceSummarizer.class);
   private static final String REGION_RADIUS_KEY = "analyze.region.radius";
@@ -142,5 +131,24 @@ public class ResourceSummarizer {
         .resourceSum(totalSum)
         .sovereignCount(sovableCount)
         .build();
+  }
+
+  private static class PlotMap {
+    private final Map<Integer, Map<Integer, PlotData>> xMap = new LinkedHashMap<>();
+
+    PlotData get(int x, int y) {
+      return xMap.getOrDefault(x, Map.of()).getOrDefault(y, PlotData.EMPTY);
+    }
+  }
+
+  private static class PlotData {
+    private static final PlotData EMPTY = new PlotData(0, 0);
+    private final int food;
+    private final int total;
+
+    private PlotData(int food, int total) {
+      this.food = food;
+      this.total = total;
+    }
   }
 }

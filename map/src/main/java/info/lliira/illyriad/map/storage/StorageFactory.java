@@ -12,13 +12,6 @@ public class StorageFactory {
     private static final String DB_PASSWORD_KEY = "db.password";
 
     private final Connection connection;
-    private final CreatureTable creatureTable;
-    private final DepositTable depositTable;
-    private final PlotTable plotTable;
-    private final ProgressTable progressTable;
-    private final ResourceTable resourceTable;
-    private final TownTable townTable;
-    private final ValidPlotTable validPlotTable;
 
     public StorageFactory(Properties properties)  {
         this(open(properties));
@@ -39,13 +32,6 @@ public class StorageFactory {
 
     public StorageFactory(Connection connection) {
         this.connection = connection;
-        creatureTable = new CreatureTable(connection);
-        depositTable = new DepositTable(connection);
-        plotTable = new PlotTable(connection);
-        progressTable = new ProgressTable(connection);
-        resourceTable = new ResourceTable(connection);
-        townTable = new TownTable(connection);
-        validPlotTable = new ValidPlotTable(connection);
     }
 
     public Connection connection() {
@@ -62,10 +48,6 @@ public class StorageFactory {
 
     public PlotTable plotTable() {
         return new PlotTable(connection);
-    }
-
-    public ProgressTable progressTable() {
-        return new ProgressTable(connection);
     }
 
     public ResourceTable resourceTable() {
