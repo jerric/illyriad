@@ -10,8 +10,9 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.sql.SQLException;
+import java.util.LinkedList;
 import java.util.Properties;
+import java.util.Queue;
 
 public class CrawlTaskTest {
   private static final int X = 50;
@@ -21,7 +22,7 @@ public class CrawlTaskTest {
   private StorageFactory storageFactory;
 
   @BeforeEach
-  public void setUp() throws IOException, SQLException, ClassNotFoundException {
+  public void setUp() throws IOException {
     Properties properties = new Properties();
     properties.load(new FileReader(new File(Constants.PROPERTY_FILE)));
     authenticator = new Authenticator(properties);
@@ -30,7 +31,9 @@ public class CrawlTaskTest {
 
   @Test
   public void getMapData() {
-    CrawlTask task = new CrawlTask(storageFactory, authenticator, new Point(X, Y));
+    Queue<Point> queue = new LinkedList<>();
+    queue.add(new Point(X, Y));
+    CrawlTask task = new CrawlTask(storageFactory, authenticator, queue);
     task.run();
   }
 }

@@ -14,6 +14,7 @@ public abstract class HttpClient<I, O> {
   private static final String XML_HTTP_REQUEST = "XMLHttpRequest";
   private static final String USER_AGENT =
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.116 Safari/537.36";
+  private static final int TIMEOUT_MS = 60_000;
 
   private final String url;
   private final HttpRequestHandler<I> requestHandler;
@@ -40,7 +41,7 @@ public abstract class HttpClient<I, O> {
         requestHandler
             .open(url, input)
             .maxBodySize(0)
-            .timeout(60)
+            .timeout(TIMEOUT_MS)
             .followRedirects(true)
             .ignoreContentType(true)
             // Set common headers

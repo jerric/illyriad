@@ -20,7 +20,7 @@ public class SqlTest {
   private Random random;
 
   @BeforeEach
-  public void setUp() throws IOException, SQLException, ClassNotFoundException {
+  public void setUp() throws IOException, SQLException {
     random = new Random();
     Properties properties = new Properties();
     properties.load(new FileReader(new File(Constants.PROPERTY_FILE)));

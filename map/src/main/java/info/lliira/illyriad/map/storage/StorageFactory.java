@@ -53,30 +53,30 @@ public class StorageFactory {
     }
 
     public CreatureTable creatureTable() {
-        return creatureTable;
+        return new CreatureTable(connection);
     }
 
     public DepositTable depositTable() {
-        return depositTable;
+        return new DepositTable(connection);
     }
 
     public PlotTable plotTable() {
-        return plotTable;
+        return new PlotTable(connection);
     }
 
     public ProgressTable progressTable() {
-        return progressTable;
+        return new ProgressTable(connection);
     }
 
     public ResourceTable resourceTable() {
-        return resourceTable;
+        return new ResourceTable(connection);
     }
 
     public TownTable townTable() {
-        return townTable;
+        return new TownTable(connection);
     }
 
     public ValidPlotTable validPlotTable() {
-        return validPlotTable;
+        return new ValidPlotTable(connection);
     }
 }

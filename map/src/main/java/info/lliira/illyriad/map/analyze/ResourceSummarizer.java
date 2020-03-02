@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-class ResourceSummarizer {
+public class ResourceSummarizer {
 
   private static class PlotData {
     private final int food;
@@ -104,9 +104,9 @@ class ResourceSummarizer {
     for (int x = Constants.MAP_MIN_X; x <= Constants.MAP_MAX_X; x++) {
       if (!validPlots.contains(x)) continue;
       var validPlot = summarizePlot(plotData, x, y);
-      validPlotTable.addUpdateBatch(validPlot);
+      validPlotTable.addUpsertBatch(validPlot);
     }
-    validPlotTable.executeUpdateBatch();
+    validPlotTable.executeUpsertBatch();
   }
 
   private Set<Integer> getValidPlots(int y) throws SQLException {

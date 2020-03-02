@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS plots (
     passable BOOLEAN,
     npc BOOLEAN,
     brg BOOLEAN,
+    food_sum INT,
+    total_sum INT,
     PRIMARY KEY (x, y)
 );
 
@@ -34,6 +36,12 @@ CREATE INDEX plots_total_idx ON plots (total);
 
 DROP INDEX IF EXISTS plots_sovable_idx;
 CREATE INDEX plots_sovable_idx ON plots (sovable);
+
+DROP INDEX IF EXISTS plots_food_sum_idx;
+CREATE INDEX plots_food_sum_idx ON plots (food_sum);
+
+DROP INDEX IF EXISTS plots_total_sum_idx;
+CREATE INDEX plots_total_sum_idx ON plots (total_sum);
 
 
 CREATE TABLE IF NOT EXISTS creatures (

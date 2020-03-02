@@ -8,49 +8,48 @@ import info.lliira.illyriad.common.net.AuthenticatedHttpClient;
 import info.lliira.illyriad.common.net.Authenticator;
 import info.lliira.illyriad.map.entity.Location;
 import info.lliira.illyriad.map.entity.Point;
-import info.lliira.illyriad.map.entity.Progress;
+import info.lliira.illyriad.map.storage.CreatureTable;
+import info.lliira.illyriad.map.storage.DepositTable;
 import info.lliira.illyriad.map.storage.LocationTable;
-import info.lliira.illyriad.map.storage.ProgressTable;
+import info.lliira.illyriad.map.storage.PlotTable;
+import info.lliira.illyriad.map.storage.ResourceTable;
 import info.lliira.illyriad.map.storage.StorageFactory;
+import info.lliira.illyriad.map.storage.TownTable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.lang.reflect.Type;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static info.lliira.illyriad.common.Constants.ZOOM;
 
- class CrawlTask implements Runnable {
-   static final AtomicLong PENDING_TASKS = new AtomicLong(0);
+class CrawlTask implements Runnable {
+  static final AtomicLong PENDING_TASKS = new AtomicLong(0);
 
   private static final String MAP_DATA_URL = "/World/MapData";
-  private static final int MAX_DELAY_MS = 500;
   private static final Logger LOG = LogManager.getLogger(CrawlTask.class.getSimpleName());
   private static final Map<Type, JsonDeserializer<?>> DESERIALIZERS =
       Map.of(MapData.Stub.class, new StubDeserializer());
 
-  private final StorageFactory storageFactory;
   private final AuthenticatedHttpClient.PostJson<MapData> mapDataClient;
-  private final Random random;
-  private final Point center;
-  private final int minX;
-  private final int maxX;
-  private final int minY;
-  private final int maxY;
+  private final Queue<Point> queue;
+  private final CreatureTable creatureTable;
+  private final DepositTable depositTable;
+  private final PlotTable plotTable;
+  private final ResourceTable resourceTable;
+  private final TownTable townTable;
 
-   CrawlTask(StorageFactory storageFactory, Authenticator authenticator, Point center) {
-    this.storageFactory = storageFactory;
-    this.random = new Random();
-    this.center = center;
-    this.minX = center.x - ZOOM;
-    this.minY = center.y - ZOOM;
-    this.maxX = center.x + ZOOM;
-    this.maxY = center.y + ZOOM;
+  CrawlTask(StorageFactory storageFactory, Authenticator authenticator, Queue<Point> queue) {
+    this.queue = queue;
+    this.creatureTable = storageFactory.creatureTable();
+    this.depositTable = storageFactory.depositTable();
+    this.plotTable = storageFactory.plotTable();
+    this.resourceTable = storageFactory.resourceTable();
+    this.townTable = storageFactory.townTable();
     this.mapDataClient =
         new AuthenticatedHttpClient.PostJson<>(
             MAP_DATA_URL, MapData.class, DESERIALIZERS, authenticator);
@@ -59,23 +58,22 @@ import static info.lliira.illyriad.common.Constants.ZOOM;
 
   @Override
   public void run() {
-    try {
-      // introduce a bit of delayed start
-      Thread.sleep(random.nextInt(MAX_DELAY_MS));
-
-      var mapData = fetch();
-      saveMapData(mapData);
-
-      // save the progress
-      saveProgress();
-    } catch (Exception e) {
-      e.printStackTrace();
-    } finally {
-      PENDING_TASKS.decrementAndGet();
+    Point center;
+    while ((center = queue.poll()) != null) {
+      try {
+        var mapData = fetch(center);
+        saveMapData(mapData);
+      } catch (Exception e) {
+        e.printStackTrace();
+        // failure, send back to queue
+        queue.offer(center);
+      } finally {
+        PENDING_TASKS.decrementAndGet();
+      }
     }
   }
 
-  private MapData fetch() {
+  private MapData fetch(Point center) {
     var data = new HashMap<String, String>();
     data.put("x", Integer.toString(center.x));
     data.put("y", Integer.toString(center.y));
@@ -87,28 +85,20 @@ import static info.lliira.illyriad.common.Constants.ZOOM;
   }
 
   private void saveMapData(MapData mapData) {
-    upsert(mapData.creatures(), storageFactory.creatureTable());
-    upsert(mapData.deposits(), storageFactory.depositTable());
-    upsert(mapData.plots(), storageFactory.plotTable());
-    upsert(mapData.resources(), storageFactory.resourceTable());
-    upsert(mapData.towns(), storageFactory.townTable());
+    upsert(mapData.creatures(), creatureTable);
+    upsert(mapData.deposits(), depositTable);
+    upsert(mapData.plots(), plotTable);
+    upsert(mapData.resources(), resourceTable);
+    upsert(mapData.towns(), townTable);
   }
 
   private <E extends Location<B>, B extends Location.Builder<E>> void upsert(
       Collection<E> locations, LocationTable<E, B> table) {
-    synchronized (table) {
-      // remove everything in range.
-      table.delete(minX, minY, maxX, maxY);
+    // remove everything in range.
+    // table.delete(minX, minY, maxX, maxY);
 
-      locations.forEach(table::addUpsertBatch);
-      table.executeUpsertBatch();
-    }
-  }
-
-  private void saveProgress() {
-    ProgressTable progressTable = storageFactory.progressTable();
-    progressTable.upsert(
-        new Progress.Builder().lastUpdated(new Date()).x(center.x).y(center.y).build());
+    locations.forEach(table::addUpsertBatch);
+    table.executeUpsertBatch();
   }
 
   public static class StubDeserializer implements JsonDeserializer<MapData.Stub> {

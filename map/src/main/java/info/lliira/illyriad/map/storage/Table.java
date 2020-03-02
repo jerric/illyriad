@@ -15,7 +15,9 @@ public abstract class Table<E extends Entity<B>, B extends Entity.Builder<E>> {
   private final List<Field<E, B, ?>> primaryFields;
   private final List<Field<E, B, ?>> dataFields;
   private final PreparedStatement upsertStatement;
+  private final PreparedStatement updateStatement;
   private final PreparedStatement deleteStatement;
+  private final PreparedStatement deleteAllStatement;
   private final PreparedStatement selectStatement;
   private final PreparedStatement selectAllStatement;
 
@@ -30,7 +32,9 @@ public abstract class Table<E extends Entity<B>, B extends Entity.Builder<E>> {
     this.dataFields = dataFields;
     try {
       upsertStatement = createUpsertStatement(connection, tableName);
+      updateStatement = createUpdateStatement(connection, tableName);
       deleteStatement = createDeleteStatement(connection, tableName);
+      deleteAllStatement = connection.prepareStatement("DELETE FROM " + tableName);
       selectStatement = createSelectStatement(connection, tableName);
       selectAllStatement = connection.prepareStatement("SELECT * FROM " + tableName);
     } catch (SQLException e) {
@@ -40,15 +44,37 @@ public abstract class Table<E extends Entity<B>, B extends Entity.Builder<E>> {
 
   private PreparedStatement createUpsertStatement(Connection connection, String tableName)
       throws SQLException {
+    return dataFields.isEmpty()
+        ? connection.prepareStatement(
+            String.format(
+                "INSERT INTO %s (%s) VALUES(%s) ON CONFLICT (%s) DO NOTHING",
+                tableName,
+                concat(primaryFields, Field::name),
+                concat(primaryFields, field -> "?"),
+                concat(primaryFields, Field::name)))
+        : connection.prepareStatement(
+            String.format(
+                "INSERT INTO %s (%s, %s) VALUES(%s, %s) ON CONFLICT (%s) DO UPDATE SET %s",
+                tableName,
+                concat(primaryFields, Field::name),
+                concat(dataFields, Field::name),
+                concat(primaryFields, field -> "?"),
+                concat(dataFields, field -> "?"),
+                concat(primaryFields, Field::name),
+                concat(dataFields, field -> field.name() + " = EXCLUDED." + field.name())));
+  }
+
+  private PreparedStatement createUpdateStatement(Connection connection, String tableName)
+      throws SQLException {
+    if (dataFields.isEmpty()) {
+      return null;
+    }
     return connection.prepareStatement(
         String.format(
-            "INSERT INTO %s (%s, %s) VALUES(%s, %s) ON CONFLICT DO UPDATE SET %s",
+            "UPDATE %s SET %s WHERE %s",
             tableName,
-            concat(primaryFields, Field::name),
-            concat(dataFields, Field::name),
-            concat(primaryFields, field -> "?"),
-            concat(dataFields, field -> "?"),
-            concat(dataFields, field -> field.name() + " = EXCLUDED." + field.name())));
+            concat(dataFields, field -> field.name() + " = ?", " AND "),
+            concat(primaryFields, field -> field.name() + " = ?", " AND ")));
   }
 
   private PreparedStatement createDeleteStatement(Connection connection, String tableName)
@@ -80,7 +106,7 @@ public abstract class Table<E extends Entity<B>, B extends Entity.Builder<E>> {
     return builder.toString();
   }
 
-  public void upsert(E entity) {
+  public synchronized void upsert(E entity) {
     setUpsertParams(entity);
     try {
       upsertStatement.execute();
@@ -89,7 +115,7 @@ public abstract class Table<E extends Entity<B>, B extends Entity.Builder<E>> {
     }
   }
 
-  public void addUpsertBatch(E entity) {
+  public synchronized void addUpsertBatch(E entity) {
     setUpsertParams(entity);
     try {
       upsertStatement.addBatch();
@@ -120,7 +146,55 @@ public abstract class Table<E extends Entity<B>, B extends Entity.Builder<E>> {
     }
   }
 
-  public void addDeleteBatch(E entity) {
+  public synchronized void update(E entity) {
+    setUpdateParams(entity);
+    try {
+      updateStatement.execute();
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public synchronized void addUpdateBatch(E entity) {
+    setUpdateParams(entity);
+    try {
+      updateStatement.addBatch();
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public synchronized void executeUpdateBatch() {
+    try {
+      updateStatement.executeBatch();
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void setUpdateParams(E entity) {
+    int index = 1;
+    // set data fields
+    for (Field<E, B, ?> field : dataFields) {
+      field.write(updateStatement, index, entity);
+      index++;
+    }
+    // set primary fields
+    for (Field<E, B, ?> field : primaryFields) {
+      field.write(updateStatement, index, entity);
+      index++;
+    }
+  }
+
+  public synchronized void deleteAll() {
+    try {
+      deleteAllStatement.executeUpdate();
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public synchronized void addDeleteBatch(E entity) {
     setDeleteParams(entity);
     try {
       deleteStatement.addBatch();
@@ -137,7 +211,7 @@ public abstract class Table<E extends Entity<B>, B extends Entity.Builder<E>> {
     }
   }
 
-  public void delete(E entity) {
+  public synchronized void delete(E entity) {
     setDeleteParams(entity);
     try {
       deleteStatement.execute();
@@ -155,7 +229,7 @@ public abstract class Table<E extends Entity<B>, B extends Entity.Builder<E>> {
     }
   }
 
-  public Optional<E> select(E entity) {
+  public synchronized Optional<E> select(E entity) {
     int index = 1;
     // set primary fields
     for (Field<E, B, ?> field : primaryFields) {
