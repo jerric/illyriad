@@ -1,10 +1,3 @@
-CREATE TABLE IF NOT EXISTS crawl_progresses (
-    x INT NOT NULL,
-    y INT NOT NULL,
-    last_updated TIMESTAMP NOT NULL,
-    PRIMARY KEY (x, y)
-);
-
 CREATE TABLE IF NOT EXISTS plots (
     x INT NOT NULL,
     y INT NOT NULL,
@@ -22,11 +15,25 @@ CREATE TABLE IF NOT EXISTS plots (
     passable BOOLEAN,
     npc BOOLEAN,
     brg BOOLEAN,
+    food_sum INT,
+    total_sum INT,
     PRIMARY KEY (x, y)
 );
 
 DROP INDEX plots_food_idx ON plots;
 CREATE INDEX plots_food_idx ON plots (food);
+
+DROP INDEX plots_total_idx ON plots;
+CREATE INDEX plots_total_idx ON plots (total);
+
+DROP INDEX plots_sovable_idx ON plots;
+CREATE INDEX plots_sovable_idx ON plots (sovable);
+
+DROP INDEX plots_food_sum_idx ON plots;
+CREATE INDEX plots_food_sum_idx ON plots (food_sum);
+
+DROP INDEX plots_total_sum_idx ON plots;
+CREATE INDEX plots_total_sum_idx ON plots (total_sum);
 
 CREATE TABLE IF NOT EXISTS creatures (
     x INT NOT NULL,

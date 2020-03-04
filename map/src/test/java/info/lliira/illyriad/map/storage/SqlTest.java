@@ -1,4 +1,4 @@
-package info.lliira.illyriad.map.crawl;
+package info.lliira.illyriad.map.storage;
 
 import info.lliira.illyriad.common.Constants;
 import info.lliira.illyriad.map.storage.StorageFactory;

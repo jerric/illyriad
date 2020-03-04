@@ -1,10 +1,3 @@
-CREATE TABLE IF NOT EXISTS crawl_progresses (
-    x INT NOT NULL,
-    y INT NOT NULL,
-    last_updated TIMESTAMP NOT NULL,
-    PRIMARY KEY (x, y)
-);
-
 CREATE TABLE IF NOT EXISTS plots (
     x INT NOT NULL,
     y INT NOT NULL,
