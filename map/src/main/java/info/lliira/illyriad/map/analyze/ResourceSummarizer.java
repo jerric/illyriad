@@ -67,7 +67,7 @@ public class ResourceSummarizer {
     var plotMap = new PlotMap();
     var sums = initializeSums();
     for (int x = minX - regionRadius; x <= maxX; x++) {
-      if (x % 10 == 0) LOG.info("Summarizing column: {}", x);
+      if (x % 100 == 0) LOG.info("Summarizing column: {}", x);
       // load the new edge column
       int edgeX = x + regionRadius;
       plotMap.add(edgeX, storage.load(edgeX));

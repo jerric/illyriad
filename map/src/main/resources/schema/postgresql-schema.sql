@@ -91,6 +91,12 @@ CREATE INDEX towns_owner_idx ON towns (owner_name);
 DROP INDEX IF EXISTS towns_alliance_idx;
 CREATE INDEX towns_alliance_idx ON towns (alliance);
 
+DROP INDEX IF EXISTS towns_abandoned_idx;
+CREATE INDEX towns_abandoned_idx ON towns (abandoned);
+
+DROP INDEX IF EXISTS towns_population_idx;
+CREATE INDEX towns_population_idx ON towns (population);
+
 
 CREATE TABLE IF NOT EXISTS valid_plots (
     x INT NOT NULL,

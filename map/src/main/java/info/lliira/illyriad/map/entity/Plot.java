@@ -63,6 +63,7 @@ public class Plot extends Location<Plot.Builder> {
         private int iron;
         private int stone;
         private int food;
+        private int total;
         private int background;
         private String plotType;
         private int layer;
@@ -118,6 +119,11 @@ public class Plot extends Location<Plot.Builder> {
             return this;
         }
 
+        public Builder total(int total) {
+            this.total = total;
+            return this;
+        }
+
         public Builder background(int background) {
             this.background = background;
             return this;
@@ -165,7 +171,7 @@ public class Plot extends Location<Plot.Builder> {
 
         @Override
         public Plot build() {
-            int total = wood + clay + iron + stone + food;
+            total = wood + clay + iron + stone + food;
             return new Plot(x, y, wood, clay, iron, stone, food, total, background, plotType, layer, region, sovable,
                     passable, hospital, npc, brg);
         }

@@ -13,6 +13,7 @@ public class PlotTable extends LocationTable<Plot, Plot.Builder> {
           new Field<>("iron", FieldType.INT, p -> p.iron, Plot.Builder::iron),
           new Field<>("stone", FieldType.INT, p -> p.stone, Plot.Builder::stone),
           new Field<>("food", FieldType.INT, p -> p.food, Plot.Builder::food),
+          new Field<>("total", FieldType.INT, p -> p.total, Plot.Builder::total),
           new Field<>("background", FieldType.INT, p -> p.background, Plot.Builder::background),
           new Field<>("plot_type", FieldType.STRING, p -> p.type, Plot.Builder::type),
           new Field<>("layer", FieldType.INT, p -> p.layer, Plot.Builder::layer),
