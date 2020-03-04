@@ -1,20 +1,19 @@
 package info.lliira.illyriad.map.entity;
 
-public class ValidPlot extends Location<ValidPlot.Builder> {
-  private static final int MIN_DISTANCE = 8;
-  private static final int MAX_DISTANCE = 20;
+public class ValidPlot extends Location<ValidPlot.Builder> implements Comparable<ValidPlot> {
+  private static final int MIN_DISTANCE = 9;
+  private static final int MAX_DISTANCE = 40;
   private static final int MIN_DISTANCE_SQ = MIN_DISTANCE * MIN_DISTANCE;
   private static final int MAX_DISTANCE_SQ = MAX_DISTANCE * MAX_DISTANCE;
-
-  public final int resourceSum;
+  public final int totalSum;
   public final int foodSum;
   public final int sovereignCount;
   public final boolean restricted;
 
   private ValidPlot(
-      int x, int y, int resourceSum, int foodSum, int sovereignCount, boolean restricted) {
+      int x, int y, int totalSum, int foodSum, int sovereignCount, boolean restricted) {
     super(x, y);
-    this.resourceSum = resourceSum;
+    this.totalSum = totalSum;
     this.foodSum = foodSum;
     this.sovereignCount = sovereignCount;
     this.restricted = restricted;
@@ -37,7 +36,7 @@ public class ValidPlot extends Location<ValidPlot.Builder> {
 
     @Override
     public String toString() {
-        return super.toString() + " food=" + foodSum + ", total="+ resourceSum;
+        return super.toString() + " food=" + foodSum + ", total="+ totalSum;
     }
 
     @Override
@@ -45,8 +44,14 @@ public class ValidPlot extends Location<ValidPlot.Builder> {
     return new Builder(this);
   }
 
+  @Override
+  public int compareTo(ValidPlot plot) {
+      int food = plot.foodSum - foodSum;
+      return (food != 0) ? food : plot.totalSum - totalSum;
+  }
+
   public static class Builder extends Location.Builder<ValidPlot> {
-    private int resourceSum;
+    private int totalSum;
     private int foodSum;
     private int sovereignCount;
     private boolean restricted;
@@ -55,14 +60,14 @@ public class ValidPlot extends Location<ValidPlot.Builder> {
 
     private Builder(ValidPlot validPlot) {
       super(validPlot);
-      resourceSum = validPlot.resourceSum;
+      totalSum = validPlot.totalSum;
       foodSum = validPlot.foodSum;
       sovereignCount = validPlot.sovereignCount;
       restricted = validPlot.restricted;
     }
 
-    public Builder resourceSum(int resourceSum) {
-      this.resourceSum = resourceSum;
+    public Builder totalSum(int resourceSum) {
+      this.totalSum = resourceSum;
       return this;
     }
 
@@ -83,7 +88,7 @@ public class ValidPlot extends Location<ValidPlot.Builder> {
 
     @Override
     public ValidPlot build() {
-      return new ValidPlot(x, y, resourceSum, foodSum, sovereignCount, restricted);
+      return new ValidPlot(x, y, totalSum, foodSum, sovereignCount, restricted);
     }
   }
 }

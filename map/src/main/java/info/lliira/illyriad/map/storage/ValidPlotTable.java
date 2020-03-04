@@ -13,8 +13,8 @@ public class ValidPlotTable extends LocationTable<ValidPlot, ValidPlot.Builder> 
     private static final List<Field<ValidPlot, ValidPlot.Builder, ?>> DATA_FIELDS =
             List.of(new Field<>("total_sum",
                                          FieldType.INT,
-                                         v->v.resourceSum,
-                                         ValidPlot.Builder::resourceSum),
+                                         v->v.totalSum,
+                                         ValidPlot.Builder::totalSum),
                              new Field<>("food_sum",
                                          FieldType.INT,
                                          v->v.foodSum,

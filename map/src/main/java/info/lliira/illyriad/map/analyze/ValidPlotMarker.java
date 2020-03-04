@@ -64,7 +64,7 @@ public class ValidPlotMarker {
         var plot =
             new ValidPlot.Builder()
                 .foodSum(resultSet.getInt("food_sum"))
-                .resourceSum(resultSet.getInt("total_sum"))
+                .totalSum(resultSet.getInt("total_sum"))
                 .x(resultSet.getInt("x"))
                 .y(resultSet.getInt("y"))
                 .build();

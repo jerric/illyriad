@@ -31,8 +31,8 @@ public class MapProcessor {
     var marker = new ValidPlotMarker(storageFactory);
     marker.run();
 
-    var finder = new CandidateFinder(storageFactory);
-    finder.run();
+//    var finder = new CandidateFinder(storageFactory);
+//    finder.run();
   }
 
 }

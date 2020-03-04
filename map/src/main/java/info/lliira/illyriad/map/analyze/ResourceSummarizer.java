@@ -64,14 +64,14 @@ public class ResourceSummarizer {
 
   public void run() throws SQLException {
     var plotMap = new PlotMap();
-    var sums = initializeSums();
     for (int x = minX - regionRadius; x <= maxX; x++) {
       if (x % 100 == 0) LOG.info("Summarizing column: {}", x);
+
       // load the new edge column
       int edgeX = x + regionRadius;
       plotMap.add(edgeX, storage.load(edgeX));
       // sum the new edge into sum and subtract old edge from sum
-      sum(sums, plotMap, x);
+      var sums = sum(plotMap, x);
       if (x >= minX) storage.save(x, sums);
       // Remove the old edge column since it's no longer needed
       plotMap.remove(x - regionRadius - 1);
@@ -79,25 +79,24 @@ public class ResourceSummarizer {
     LOG.info("Done summarizer.");
   }
 
-  private Map<Integer, SumData> initializeSums() {
-    var sums = new LinkedHashMap<Integer, SumData>(maxY - minY + 1 + 2 * regionRadius);
-    for (int y = minY - regionRadius; y <= maxY + regionRadius; y++) {
-      sums.put(y, new SumData(0, 0));
+  public Map<Integer, SumData> sum(PlotMap plots, int x) {
+    if (x < minX) return Map.of();
+    var sums = new LinkedHashMap<Integer, SumData>(maxY - minY + 1);
+    for (int y = minY; y <= maxY; y++) {
+      sums.put(y, sum(plots, x, y));
     }
     return sums;
   }
 
-  private void sum(Map<Integer, SumData> sums, PlotMap plotMap, int x) {
-    int oldEdgeX = x - regionRadius - 1;
-    int newEdgeX = x + regionRadius;
-    var sumDiff = new SumData(0, 0);
-    for (int y = minY - regionRadius; y <= maxY + regionRadius; y++) {
-      sumDiff.add(plotMap.get(newEdgeX, y + regionRadius));
-      sumDiff.subtract(plotMap.get(newEdgeX, y - regionRadius - 1));
-      sumDiff.subtract(plotMap.get(oldEdgeX, y + regionRadius));
-      sumDiff.add(plotMap.get(oldEdgeX, y - regionRadius - 1));
-      sums.get(y).add(sumDiff);
+  private SumData sum(PlotMap plots, final int x, final int y) {
+    SumData sumData = new SumData(0, 0);
+    for (int dy = y - regionRadius; dy <= y+regionRadius; dy++) {
+      int diff = regionRadius - Math.abs(y - dy);
+      for (int dx = x - diff; dx <= x+diff; dx++) {
+        sumData.add(plots.get(dx, dy));
+      }
     }
+    return sumData;
   }
 
   static class Storage {
@@ -171,8 +170,8 @@ public class ResourceSummarizer {
   }
 
   static class SumData {
-    private int foodSum = 0;
-    private int totalSum = 0;
+    private int foodSum;
+    private int totalSum;
 
     SumData(int foodSum, int totalSum) {
       this.foodSum = foodSum;
@@ -182,16 +181,6 @@ public class ResourceSummarizer {
     void add(PlotData plotData) {
       foodSum += plotData.food;
       totalSum += plotData.total;
-    }
-
-    void subtract(PlotData plotData) {
-      foodSum -= plotData.food;
-      totalSum -= plotData.total;
-    }
-
-    void add(SumData sumData) {
-      foodSum += sumData.foodSum;
-      totalSum += sumData.totalSum;
     }
 
     @Override

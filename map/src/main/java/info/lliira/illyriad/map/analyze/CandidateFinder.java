@@ -1,6 +1,7 @@
 package info.lliira.illyriad.map.analyze;
 
 import info.lliira.illyriad.common.Constants;
+import info.lliira.illyriad.common.math.CombinatorialIterator;
 import info.lliira.illyriad.map.entity.ValidPlot;
 import info.lliira.illyriad.map.storage.StorageFactory;
 import info.lliira.illyriad.map.storage.ValidPlotTable;
@@ -11,7 +12,11 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
@@ -25,10 +30,27 @@ public class CandidateFinder {
   }
 
   private static final int CANDIDATE_COUNT = 8;
-  private static final int RESOURCE_WEIGHT = 1;
-  private static final int FOOD_WEIGHT = 2;
+  private static final int SOLUTION_COUNT = 10;
+  private static final int RESOURCE_WEIGHT = 10;
+  private static final int FOOD_WEIGHT = 20;
+  private static final int TOP_K_PCT = 15;
 
   private static final Logger LOG = LogManager.getLogger(CandidateFinder.class.getSimpleName());
+
+  static boolean validate(List<ValidPlot> plots) {
+    return validate(plots, 0);
+  }
+
+  private static boolean validate(List<ValidPlot> plots, int start) {
+    if (start == plots.size() - 1) return true;
+    for (int i = start; i < plots.size() - 1; i++) {
+      var plot = plots.get(start);
+      for (int j = start + 1; j < plots.size(); j++) {
+        if (!plot.inRange(plots.get(j)) || !validate(plots, j)) return false;
+      }
+    }
+    return true;
+  }
 
   private final ValidPlotTable validPlotTable;
 
@@ -39,83 +61,92 @@ public class CandidateFinder {
   public void run() {
     LOG.info("Loading valid plots...");
     var plots = loadPlots();
-    var solutions = new ArrayList<Solution>();
-    int count = 0;
-    for (var plot : plots) {
-      if (count % 1000 == 0) LOG.info("Progress {}/{}", count, plots.size());
-      var subSolutions = findSolutions(plot, plots);
-      var subBest = bestSolution(subSolutions);
-      solutions.add(subBest);
-      count++;
+    LOG.info("Filtering {} plots...", plots.size());
+    plots = filterTopK(plots);
+    var solutions = new HashSet<Solution>();
+    LOG.info("Iterating on {} filtered plots..", plots.size());
+    for (int i = 0; i < plots.size(); i++) {
+      var plot = plots.get(i);
+      var candidatePool = plots.stream().filter(plot::inRange).collect(Collectors.toList());
+      if (i % 10 == 0) LOG.info("Progress: {}/{}", i, plots.size());
+      if (candidatePool.size() >= CANDIDATE_COUNT - 1) {
+        var solution = findSolution(plot, candidatePool);
+        if (solution.isPresent()) {
+          LOG.info("{}/{} Found solution at Center:{}", i, plots.size(), plot);
+          solutions.add(solution.get());
+        }
+      }
     }
-    var best = bestSolution(solutions);
-    LOG.info("Found best: {}", best);
+    LOG.info("Best solutions: ");
+    List<Solution> bests = new ArrayList<>(solutions);
+    Collections.sort(bests);
+    int limit = Math.min(bests.size(), SOLUTION_COUNT);
+    for (int i = 0; i < limit; i++) {
+      LOG.info("{}", bests.get(i));
+    }
   }
 
   private List<ValidPlot> loadPlots() {
     var plots = new ArrayList<ValidPlot>();
     var iterator = validPlotTable.selectAll();
-    while (iterator.hasNext()) plots.add(iterator.next());
+    while (iterator.hasNext()) {
+      var plot = iterator.next();
+      // if (plot.x >= -500 && plot.y >= -1000)
+        plots.add(plot);
+    }
     return plots;
   }
 
-  private List<Solution> findSolutions(ValidPlot plot, List<ValidPlot> allPlots) {
-    var solutions = new ArrayList<Solution>();
-    solutions.add(new Solution().add(plot));
-    // initialize the base pool. The rest of the candidate will only be chosen from this pool
-    var basePool = allPlots.stream().filter(plot::inRange).collect(Collectors.toList());
+  private List<ValidPlot> filterTopK(List<ValidPlot> plots) {
+    int limit = plots.size() * TOP_K_PCT / 100;
+    // sort by total
+    plots.sort((l, r) -> r.totalSum - l.totalSum);
+    int totalThreshold = plots.get(limit).totalSum;
 
-    // Choose the [2..CANDIDATE_COUNT] adjacent plots
-    for (int i = 2; i <= CANDIDATE_COUNT; i++) {
-      int size = solutions.size();
-      for (int j = 0; j < size; j++) {
-        Solution solution = solutions.get(j);
-        var pool = basePool.stream().filter(solution::minRange).collect(Collectors.toList());
-        for (var candidate : pool) {
-          solutions.add(solution.copy().add(candidate));
-        }
+    // sort by food
+    plots.sort((l, r) -> r.foodSum - l.foodSum);
+    int foodThreshold = plots.get(limit).foodSum;
+
+    var filtered = new ArrayList<ValidPlot>(limit);
+    for (var plot : plots) {
+      if (plot.foodSum >= foodThreshold) {
+        if (plot.totalSum >= totalThreshold) filtered.add(plot);
+      } else break;
+    }
+    return filtered;
+  }
+
+  private Optional<Solution> findSolution(ValidPlot center, List<ValidPlot> candidatePool) {
+    var combinator = new CombinatorialIterator<>(CANDIDATE_COUNT - 1, candidatePool);
+    Solution best = null;
+    for (var candidates : combinator) {
+      if (validate(candidates)) {
+        var solution = new Solution(candidates).add(center);
+        if (best == null || best.score() < solution.score()) best = solution;
       }
     }
-    return solutions;
+    return Optional.ofNullable(best);
   }
 
-  private Solution bestSolution(List<Solution> solutions) {
-    Solution best = null;
-    for (Solution solution : solutions) {
-      if (best == null || solution.score() > best.score()) best = solution;
-    }
-    return best;
-  }
-
-  private static class Solution {
+  private static class Solution implements Comparable<Solution> {
     private final List<ValidPlot> plots = new ArrayList<>();
     private int foodSum = 0;
     private int totalSum = 0;
 
+    Solution(List<ValidPlot> plots) {
+      plots.forEach(this::add);
+    }
+
     Solution add(ValidPlot plot) {
-      plots.add(plot);
+      this.plots.add(plot);
       foodSum += plot.foodSum;
-      totalSum += plot.resourceSum;
+      totalSum += plot.totalSum;
+      Collections.sort(plots);
       return this;
     }
 
     int score() {
       return (totalSum - foodSum) / 4 * RESOURCE_WEIGHT + foodSum * FOOD_WEIGHT;
-    }
-
-    boolean minRange(ValidPlot candidate) {
-      for (ValidPlot plot : plots) {
-        if (!plot.minRange(candidate)) return false;
-      }
-      return true;
-    }
-
-    Solution copy() {
-      var solution = new Solution();
-      solution.plots.addAll(plots);
-      solution.foodSum = foodSum;
-      solution.totalSum = totalSum;
-      return solution;
     }
 
     @Override
@@ -126,6 +157,30 @@ public class CandidateFinder {
         builder.append("\t").append(plot).append("\n");
       }
       return builder.toString();
+    }
+
+    @Override
+    public int compareTo(Solution o) {
+      return o.score() - score();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (!(o instanceof Solution)) return false;
+      Solution solution = (Solution) o;
+      if (foodSum != solution.foodSum
+          || totalSum != solution.totalSum
+          || plots.size() != solution.plots.size()) return false;
+      for (int i = 0; i < plots.size(); i++) {
+        if (!plots.get(i).equals(solution.plots.get(i))) return false;
+      }
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(plots, foodSum, totalSum);
     }
   }
 }

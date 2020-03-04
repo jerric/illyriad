@@ -42,16 +42,14 @@ public class ResourceSummarizerTest {
   };
 
   private static final int[][] SUMS = {
-    {1, 4, 7, 8, 6, 11, 14, 13, 5},
-    {6, 18, 24, 24, 13, 23, 26, 25, 9},
-    {12, 27, 36, 33, 28, 40, 45, 35, 14},
-    {13, 26, 33, 31, 34, 43, 47, 31, 15},
-    {8, 18, 22, 25, 35, 48, 56, 36, 19},
-    {4, 17, 18, 28, 27, 45, 48, 36, 17},
-    {2, 16, 22, 33, 33, 52, 51, 37, 12},
-    {4, 13, 24, 35, 44, 49, 40, 22, 6},
-    {2, 5, 16, 23, 37, 35, 29, 12, 3},
-    {2, 3, 8, 12, 19, 14, 10, 2, 2}
+    {9, 16, 11, 10, 11, 22, 17},
+    {21, 23, 22, 12, 22, 25, 22},
+    {16, 22, 13, 23, 24, 30, 20},
+    {9, 13, 9, 19, 27, 30, 22},
+    {10, 13, 11, 18, 25, 31, 26},
+    {8, 16, 18, 14, 27, 29, 19},
+    {6, 15, 16, 30, 30, 26, 15},
+    {3, 10, 18, 22, 23, 19, 3},
   };
 
   @Captor private ArgumentCaptor<Integer> xyCaptor;
@@ -78,9 +76,9 @@ public class ResourceSummarizerTest {
 
   private Map<Integer, ResourceSummarizer.SumData> sum(int x) {
     var column = new LinkedHashMap<Integer, ResourceSummarizer.SumData>();
-    for (int y = MIN_Y - 1; y <= MAX_Y + 1; y++) {
-      int dx = x - (MIN_X - 1);
-      int dy = y - (MIN_Y - 1);
+    for (int y = MIN_Y; y <= MAX_Y; y++) {
+      int dx = x - MIN_X;
+      int dy = y - MIN_Y;
       column.put(y, new ResourceSummarizer.SumData(SUMS[dy][dx], SUMS[dy][dx]));
     }
     return column;
