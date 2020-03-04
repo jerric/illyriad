@@ -42,14 +42,13 @@ public class ResourceSummarizer {
   private final int maxX;
   private final int maxY;
 
-  ResourceSummarizer(Properties properties) throws SQLException {
-    this(
-        properties,
-        new Storage(new StorageFactory(properties)),
-        MAP_MIN_X,
-        MAP_MIN_Y,
-        MAP_MAX_X,
-        MAP_MAX_Y);
+  public ResourceSummarizer(Properties properties) throws SQLException {
+    this(properties, new StorageFactory(properties));
+  }
+
+  public ResourceSummarizer(Properties properties, StorageFactory storageFactory)
+      throws SQLException {
+    this(properties, new Storage(storageFactory), MAP_MIN_X, MAP_MIN_Y, MAP_MAX_X, MAP_MAX_Y);
   }
 
   ResourceSummarizer(
@@ -63,7 +62,7 @@ public class ResourceSummarizer {
     this.maxY = maxY;
   }
 
-  void run() throws SQLException {
+  public void run() throws SQLException {
     var plotMap = new PlotMap();
     var sums = initializeSums();
     for (int x = minX - regionRadius; x <= maxX; x++) {
