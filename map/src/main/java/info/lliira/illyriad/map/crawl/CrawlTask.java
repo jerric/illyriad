@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static info.lliira.illyriad.common.Constants.ZOOM;
+import static info.lliira.illyriad.map.Constants.ZOOM;
 
 class CrawlTask implements Runnable {
   static final AtomicLong PENDING_TASKS = new AtomicLong(0);

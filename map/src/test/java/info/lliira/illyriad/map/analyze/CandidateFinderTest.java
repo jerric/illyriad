@@ -15,10 +15,10 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
-import static info.lliira.illyriad.common.Constants.MAP_MAX_X;
-import static info.lliira.illyriad.common.Constants.MAP_MAX_Y;
-import static info.lliira.illyriad.common.Constants.MAP_MIN_X;
-import static info.lliira.illyriad.common.Constants.MAP_MIN_Y;
+import static info.lliira.illyriad.map.Constants.MAP_MAX_X;
+import static info.lliira.illyriad.map.Constants.MAP_MAX_Y;
+import static info.lliira.illyriad.map.Constants.MAP_MIN_X;
+import static info.lliira.illyriad.map.Constants.MAP_MIN_Y;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

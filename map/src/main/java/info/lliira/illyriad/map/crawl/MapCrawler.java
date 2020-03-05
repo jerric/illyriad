@@ -16,7 +16,11 @@ import java.util.Queue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static info.lliira.illyriad.common.Constants.ZOOM;
+import static info.lliira.illyriad.map.Constants.MAP_MAX_X;
+import static info.lliira.illyriad.map.Constants.MAP_MAX_Y;
+import static info.lliira.illyriad.map.Constants.MAP_MIN_X;
+import static info.lliira.illyriad.map.Constants.MAP_MIN_Y;
+import static info.lliira.illyriad.map.Constants.ZOOM;
 
 public class MapCrawler {
 
@@ -86,10 +90,10 @@ public class MapCrawler {
 
   private Queue<Point> createTasks() {
     Queue<Point> queue = new LinkedList<>();
-    int minX = Constants.MAP_MIN_X + ZOOM;
-    int minY = Constants.MAP_MIN_Y + ZOOM;
-    for (int y = minY; y <= Constants.MAP_MAX_Y; y += ZOOM * 2 + 1) {
-      for (int x = minX; x <= Constants.MAP_MAX_X; x += ZOOM * 2 + 1) {
+    int minX = MAP_MIN_X + ZOOM;
+    int minY = MAP_MIN_Y + ZOOM;
+    for (int y = minY; y <= MAP_MAX_Y; y += ZOOM * 2 + 1) {
+      for (int x = minX; x <= MAP_MAX_X; x += ZOOM * 2 + 1) {
         queue.offer(new Point(x, y));
       }
     }
