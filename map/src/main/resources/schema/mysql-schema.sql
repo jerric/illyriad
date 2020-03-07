@@ -64,7 +64,7 @@ DROP INDEX resources_type_idx ON resources;
 CREATE INDEX resources_type_idx ON resources (type);
 
 
-CREATE TABLE IF NOT EXISTS towns (
+CREATE TABLE IF NOT EXISTS town (
     x INT NOT NULL,
     y INT NOT NULL,
     id INT,
@@ -83,11 +83,11 @@ CREATE TABLE IF NOT EXISTS towns (
     PRIMARY KEY(x, y)
 );
 
-DROP INDEX towns_owner_idx ON towns;
-CREATE INDEX towns_owner_idx ON towns (owner_name);
+DROP INDEX towns_owner_idx ON town;
+CREATE INDEX towns_owner_idx ON town (owner_name);
 
-DROP INDEX towns_alliance_idx ON towns;
-CREATE INDEX towns_alliance_idx ON towns (alliance);
+DROP INDEX towns_alliance_idx ON town;
+CREATE INDEX towns_alliance_idx ON town (alliance);
 
 
 CREATE TABLE IF NOT EXISTS valid_plots (

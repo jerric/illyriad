@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Unit test for simple App.
  */
-public class ResourceLoaderTest
+public class TownLoaderTest
 {
     private Authenticator authenticator;
 
@@ -35,7 +35,7 @@ public class ResourceLoaderTest
     @Test
     public void loadTowns()
     {
-        var loader = new ResourceLoader(authenticator);
+        var loader = new TownLoader(authenticator);
         var towns = loader.loadTowns();
         assertFalse(towns.towns.isEmpty());
         assertTrue(towns.current().isPresent());

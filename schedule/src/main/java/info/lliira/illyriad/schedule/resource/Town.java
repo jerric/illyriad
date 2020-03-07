@@ -1,13 +1,32 @@
 package info.lliira.illyriad.schedule.resource;
 
-public class Town {
-  public final int id;
-  public final String name;
-  public final boolean current;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
 
-  public Town(int id, String name, boolean current) {
-    this.id = id;
-    this.name = name;
-    this.current = current;
+public class Town {
+  public final Progress progress;
+  public final Map<Integer, TownEntity> towns = new LinkedHashMap<>();
+  public final Map<Resource.Type, Resource> resources = new LinkedHashMap<>();
+
+  public Town(Progress progress) {
+    this.progress = progress;
+  }
+
+  public Town add(TownEntity townEntity) {
+    towns.put(townEntity.id, townEntity);
+    return this;
+  }
+
+  public Town add(Resource resource) {
+    resources.put(resource.type, resource);
+    return this;
+  }
+
+  public Optional<TownEntity> current() {
+    for (TownEntity townEntity : towns.values()) {
+      if (townEntity.current) return Optional.of(townEntity);
+    }
+    return Optional.empty();
   }
 }
