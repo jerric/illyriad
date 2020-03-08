@@ -14,4 +14,8 @@ public class Progress {
     this.research1 = research1;
     this.research2 = research2;
   }
+
+  public int constructionCount() {
+    return construction2.isPresent()?  2 : construction1.isPresent() ? 1 : 0;
+  }
 }

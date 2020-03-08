@@ -15,7 +15,11 @@ public class Resource {
   }
 
   public int current() {
-    double delta = rate * (System.currentTimeMillis() - timestamp) / 3_600_000.0;
+    return till(System.currentTimeMillis());
+  }
+
+  public int till(long toTimestamp) {
+    double delta = rate * (toTimestamp - this.timestamp) / 3_600_000.0;
     return amount + (int) Math.round(delta);
   }
 

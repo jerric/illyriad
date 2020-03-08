@@ -20,7 +20,7 @@ public class TownLoader {
             RESOURCE_URL, ResponseJson.class, Map.of(), authenticator);
   }
 
-  public Town loadTowns() {
+  public Town loadTown() {
     var response = resourceClient.call(Map.of());
     assert response.output.isPresent();
     var json = response.output.get();

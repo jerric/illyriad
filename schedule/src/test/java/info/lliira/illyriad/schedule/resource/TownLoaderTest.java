@@ -36,7 +36,7 @@ public class TownLoaderTest
     public void loadTowns()
     {
         var loader = new TownLoader(authenticator);
-        var towns = loader.loadTowns();
+        var towns = loader.loadTown();
         assertFalse(towns.towns.isEmpty());
         assertTrue(towns.current().isPresent());
         assertEquals(8, towns.resources.size());
