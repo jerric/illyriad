@@ -11,6 +11,21 @@
 
   <artifactId>lliira-illyriad-schedule</artifactId>
 
+  <build>
+    <plugins>
+      <plugin>
+      <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>info.lliira.illyriad.schedule.SchedulerService</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
   <dependencies>
     <dependency>
       <groupId>info.lliira.illyriad</groupId>
