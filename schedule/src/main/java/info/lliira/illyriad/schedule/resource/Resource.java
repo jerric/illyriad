@@ -23,6 +23,11 @@ public class Resource {
     return amount + (int) Math.round(delta);
   }
 
+  @Override
+  public String toString() {
+    return String.format("%s:%,d/%,d", type, current(), rate);
+  }
+
   public enum Type {
     Wood,
     Clay,

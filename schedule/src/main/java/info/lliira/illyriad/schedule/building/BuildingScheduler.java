@@ -2,6 +2,7 @@ package info.lliira.illyriad.schedule.building;
 
 import info.lliira.illyriad.common.Constants;
 import info.lliira.illyriad.common.net.Authenticator;
+import info.lliira.illyriad.schedule.Scheduler;
 import info.lliira.illyriad.schedule.resource.Resource;
 import info.lliira.illyriad.schedule.resource.Town;
 import info.lliira.illyriad.schedule.resource.TownLoader;
@@ -15,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-public class BuildingScheduler implements Runnable {
+public class BuildingScheduler extends Scheduler {
 
   public static void main(String[] args) throws IOException {
     Properties properties = new Properties();
@@ -27,14 +28,21 @@ public class BuildingScheduler implements Runnable {
 
   private static final int MIN_BUILDING_INDEX = 1;
   private static final int MAX_BUILDING_INDEX = 25;
-  private static final int FOOD_PERCENT = 15;
+  private static final double FOOD_RATIO = 0.2;
+  private static final Map<Resource.Type, Double> BUILDING_RESOURCE_TYPES = new HashMap<>();
+
+  static {
+    BUILDING_RESOURCE_TYPES.put(Resource.Type.Wood, 1.0);
+    BUILDING_RESOURCE_TYPES.put(Resource.Type.Clay, 1.0);
+    BUILDING_RESOURCE_TYPES.put(Resource.Type.Iron, 1.0);
+    BUILDING_RESOURCE_TYPES.put(Resource.Type.Stone, 1.0);
+  }
 
   private static final Logger LOG = LogManager.getLogger(BuildingScheduler.class.getSimpleName());
 
   private final TownLoader townLoader;
   private final BuildingLoader buildingLoader;
   private final BuildingUpgrader buildingUpgrader;
-  private boolean running;
 
   public BuildingScheduler(Authenticator authenticator) {
     this.townLoader = new TownLoader(authenticator);
@@ -42,71 +50,62 @@ public class BuildingScheduler implements Runnable {
     this.buildingUpgrader = new BuildingUpgrader(authenticator);
   }
 
-  public void stop() {
-    running = false;
-  }
-
   @Override
-  public void run() {
-    running = true;
-    while (running) {
-      LOG.info("Loading Town Resources...");
-      var town = townLoader.loadTown();
-      LOG.info(
-          "Gold:{}, Wood:{}, Clay:{}, Iron:{}, Stone:{}, Food:{}",
-          town.resources.get(Resource.Type.Gold),
-          town.resources.get(Resource.Type.Wood),
-          town.resources.get(Resource.Type.Clay),
-          town.resources.get(Resource.Type.Iron),
-          town.resources.get(Resource.Type.Stone),
-          town.resources.get(Resource.Type.Food));
-      LOG.info("{} constructions in progress", town.progress.constructionCount());
-      long toWaitMillis;
-      if (town.progress.construction2.isPresent() && town.progress.construction1.isPresent()) {
-        // build queue is full, wait for the fist building to finish
-        toWaitMillis = town.progress.construction1.get() - System.currentTimeMillis();
+  public long schedule() {
+    LOG.info("=============== Loading Town Resources ===============");
+    var town = townLoader.loadTown();
+    LOG.info(town);
+    LOG.info("{} constructions in progress", town.progress.constructionCount());
+
+    long toWaitMillis = 0;
+    if (town.progress.construction1.isEmpty()) {
+      Building building = findNextToUpgrade(town);
+      toWaitMillis = waitTillEnoughResources(town, building);
+      if (toWaitMillis == 0) {
+        LOG.info("Constructing Next building: {} -> level {}", building.name, building.nextLevel);
+        buildingUpgrader.upgrade(building);
+        toWaitMillis = building.time.toMillis();
       } else {
-        Building building = findNextToUpgrade(town);
-        LOG.info("Next building to build: {} -> level {}", building.name, building.nextLevel);
         LOG.info(
-            "Resource needed: wood:{}, clay:{}, iron:{}, stone:{}",
-            building.woodCost,
-            building.clayCost,
-            building.ironCost,
-            building.stoneCost);
-        toWaitMillis = waitTillEnoughResources(town, building);
-        if (toWaitMillis == 0) buildingUpgrader.upgrade(building);
+            "Lack resources for Next building: {} -> level {}", building.name, building.nextLevel);
       }
-      if (toWaitMillis > 0) {
-        LOG.info("Waiting for {} seconds.", toWaitMillis / 1000);
-        try {
-          Thread.sleep(toWaitMillis);
-        } catch (InterruptedException e) { // do nothing
-        }
-      }
-    }
+    } else toWaitMillis = town.progress.constructionTimestamp() - System.currentTimeMillis();
+    LOG.info("Waiting for {} seconds", String.format("%,d", toWaitMillis / 1000));
+    return toWaitMillis;
   }
 
   private Building findNextToUpgrade(Town town) {
     var resourceBuildings = loadResourceBuildings();
-    long toTimestamp = town.progress.construction1.orElse(System.currentTimeMillis());
+    long toTimestamp = town.progress.constructionTimestamp();
+
+    // check if we need to produce food
+    if (shouldScheduleFood(town, toTimestamp)) return resourceBuildings.get(Resource.Type.Food);
 
     // choose the lowest resource type at the timestamp
-    final Resource.Type[] types = {
-      Resource.Type.Wood, Resource.Type.Clay, Resource.Type.Iron, Resource.Type.Stone
-    };
     Resource minResource = null;
     long minAmount = 0;
-    for (var type : types) {
-      Resource resource = town.resources.get(type);
-      int amount = resource.till(toTimestamp);
+    for (var entry : BUILDING_RESOURCE_TYPES.entrySet()) {
+      Resource resource = town.resources.get(entry.getKey());
+      long amount = Math.round(resource.till(toTimestamp) / entry.getValue());
       if (minResource == null || minAmount > amount) {
         minResource = resource;
         minAmount = amount;
       }
     }
-    long percent = 100 * town.resources.get(Resource.Type.Food).current() / minResource.current();
-    return resourceBuildings.get((percent < FOOD_PERCENT) ? Resource.Type.Food : minResource.type);
+    return resourceBuildings.get(minResource.type);
+  }
+
+  private boolean shouldScheduleFood(Town town, long toTimestamp) {
+    var food = town.resources.get(Resource.Type.Food);
+    // keep producing food
+    if (food.rate <= 0) return true;
+
+    // compare the food with the average of the other resources
+    long sum = 0;
+    for (Resource.Type type : BUILDING_RESOURCE_TYPES.keySet()) {
+      sum += town.resources.get(type).till(toTimestamp);
+    }
+    return FOOD_RATIO * sum / BUILDING_RESOURCE_TYPES.size() > food.till(toTimestamp);
   }
 
   // Loads one of build of each resource with the lowest nextLevel.

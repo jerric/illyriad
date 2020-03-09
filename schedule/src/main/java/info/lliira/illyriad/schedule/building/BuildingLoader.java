@@ -76,6 +76,7 @@ public class BuildingLoader {
 
   private Map<String, String> parseUploadFields(Document document) {
     return document.select("fieldset table form#UpgradeForm input").stream()
+        .filter(input -> !input.attr("name").isBlank())
         .collect(Collectors.toMap(input -> input.attr("name"), Element::val));
   }
 

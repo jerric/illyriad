@@ -1,18 +1,11 @@
 package info.lliira.illyriad.map.analyze;
 
-import info.lliira.illyriad.common.Constants;
+import info.lliira.illyriad.map.TestHelper;
 import info.lliira.illyriad.map.entity.ValidPlot;
-import info.lliira.illyriad.map.storage.StorageFactory;
 import info.lliira.illyriad.map.storage.ValidPlotTable;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.sql.SQLException;
 import java.util.List;
-import java.util.Properties;
 import java.util.Random;
 
 import static info.lliira.illyriad.map.Constants.MAP_MAX_X;
@@ -26,16 +19,7 @@ public class CandidateFinderTest {
 
   private static final int GENERATE_COUNT = 35400;
 
-  private StorageFactory storageFactory;
-  private Random random;
-
-  @BeforeEach
-  public void setUp() throws IOException, SQLException {
-    random = new Random();
-    Properties properties = new Properties();
-    properties.load(new FileReader(new File(Constants.PROPERTY_FILE)));
-    storageFactory = new StorageFactory(properties);
-  }
+  private Random random = new Random();
 
   @Test
   public void valid() {
@@ -57,7 +41,7 @@ public class CandidateFinderTest {
   }
 
   public void generateValidPlots() {
-    ValidPlotTable validPlotTable = storageFactory.validPlotTable();
+    ValidPlotTable validPlotTable = TestHelper.STORAGE_FACTORY.validPlotTable();
     validPlotTable.deleteAll();
     for (int i = 0; i < GENERATE_COUNT; i++) {
       var plot =

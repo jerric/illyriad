@@ -1,7 +1,6 @@
 package info.lliira.illyriad.map.storage;
 
 import info.lliira.illyriad.common.Constants;
-import info.lliira.illyriad.map.storage.StorageFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

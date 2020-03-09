@@ -1,14 +1,9 @@
 package info.lliira.illyriad.common.net;
 
-import info.lliira.illyriad.common.Constants;
-import org.junit.jupiter.api.BeforeEach;
+import info.lliira.illyriad.common.TestHelper;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.Map;
-import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -16,18 +11,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AuthenticatedHttpClientTest {
 
-  private Authenticator authenticator;
-
-  @BeforeEach
-  public void setUp() throws IOException {
-    Properties properties = new Properties();
-    properties.load(new FileReader(new File(Constants.PROPERTY_FILE)));
-    authenticator = new Authenticator(properties);
-  }
-
   @Test
   public void getBuildingPage() {
-    var client = new AuthenticatedHttpClient.GetHtml("/Town/Building/1/2", authenticator);
+    var client =
+        new AuthenticatedHttpClient.GetHtml("/Town/Building/1/2", TestHelper.AUTHENTICATOR);
     var response = client.call(Map.of());
     assertTrue(response.output.isPresent());
     assertFalse(response.output.get().select("div#UpgradePanel fieldset table").isEmpty());
@@ -44,7 +31,9 @@ public class AuthenticatedHttpClientTest {
 
   @Test
   public void getResourcesJson() {
-    var client = new AuthenticatedHttpClient.GetJson<TestJson>("/Home/UpdateResources", TestJson.class, Map.of(), authenticator);
+    var client =
+        new AuthenticatedHttpClient.GetJson<TestJson>(
+            "/Home/UpdateResources", TestJson.class, Map.of(), TestHelper.AUTHENTICATOR);
     var response = client.call(Map.of());
     assertTrue(response.output.isPresent());
     var json = response.output.get();

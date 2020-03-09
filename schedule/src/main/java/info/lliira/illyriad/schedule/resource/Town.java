@@ -29,4 +29,15 @@ public class Town {
     }
     return Optional.empty();
   }
+
+  @Override
+  public String toString() {
+    return String.format("%s %s %s %s %s %s",
+        resources.get(Resource.Type.Gold),
+        resources.get(Resource.Type.Wood),
+        resources.get(Resource.Type.Clay),
+        resources.get(Resource.Type.Iron),
+        resources.get(Resource.Type.Stone),
+        resources.get(Resource.Type.Food));
+  }
 }

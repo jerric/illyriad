@@ -49,7 +49,7 @@ public class Building {
     ClayPit("Clay Pit", Resource.Type.Clay),
     IronMine("Iron Mine", Resource.Type.Iron),
     Quarry("Quarry", Resource.Type.Stone),
-    Farm("Farm", Resource.Type.Food);
+    Farm("Farmyard", Resource.Type.Food);
 
     private static final Map<String, Type> TYPES =
         Arrays.stream(values()).collect(Collectors.toMap(type -> type.name, type -> type));
