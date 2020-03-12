@@ -90,9 +90,9 @@ public class ResourceSummarizer {
 
   private SumData sum(PlotMap plots, final int x, final int y) {
     SumData sumData = new SumData(0, 0);
-    for (int dy = y - regionRadius; dy <= y+regionRadius; dy++) {
+    for (int dy = y - regionRadius; dy <= y + regionRadius; dy++) {
       int diff = regionRadius - Math.abs(y - dy);
-      for (int dx = x - diff; dx <= x+diff; dx++) {
+      for (int dx = x - diff; dx <= x + diff; dx++) {
         sumData.add(plots.get(dx, dy));
       }
     }

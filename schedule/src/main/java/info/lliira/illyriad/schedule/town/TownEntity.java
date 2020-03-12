@@ -1,4 +1,4 @@
-package info.lliira.illyriad.schedule.resource;
+package info.lliira.illyriad.schedule.town;
 
 public class TownEntity {
   public final int id;

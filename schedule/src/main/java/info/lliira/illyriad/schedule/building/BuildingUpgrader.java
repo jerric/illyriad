@@ -3,8 +3,6 @@ package info.lliira.illyriad.schedule.building;
 import info.lliira.illyriad.common.net.AuthenticatedHttpClient;
 import info.lliira.illyriad.common.net.Authenticator;
 
-import java.util.Map;
-
 public class BuildingUpgrader {
   private static final String UPGRADE_URL = "/Town/UpgradeBuilding";
 

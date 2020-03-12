@@ -24,7 +24,7 @@ public class PlotTable extends LocationTable<Plot, Plot.Builder> {
           new Field<>("npc", FieldType.BOOLEAN, p -> p.npc, Plot.Builder::npc),
           new Field<>("brg", FieldType.BOOLEAN, p -> p.brg, Plot.Builder::brg));
 
-  PlotTable(Connection connection)  {
+  PlotTable(Connection connection) {
     super(connection, "plots", DATA_FIELDS);
   }
 

@@ -59,12 +59,13 @@ public class HttpResponseHandlerTest {
     var htmlHandler = HttpResponseHandler.HTML;
     when(mockResponse.contentType()).thenReturn("text/html etc.");
     when(mockResponse.parse()).thenThrow(new IOException("error"));
-    assertThrows(IOException.class,() -> htmlHandler.produce(mockResponse) );
+    assertThrows(IOException.class, () -> htmlHandler.produce(mockResponse));
   }
 
   private static class TestJson {
     private final String name;
     private final int value;
+
     private TestJson(String name, int value) {
       this.name = name;
       this.value = value;
@@ -75,8 +76,7 @@ public class HttpResponseHandlerTest {
       if (this == o) return true;
       if (o == null || getClass() != o.getClass()) return false;
       TestJson testJson = (TestJson) o;
-      return value == testJson.value &&
-          name.equals(testJson.name);
+      return value == testJson.value && name.equals(testJson.name);
     }
 
     @Override
@@ -109,7 +109,7 @@ public class HttpResponseHandlerTest {
     var jsonHandler = HttpResponseHandler.JSON(TestJson.class, Map.of());
     when(mockResponse.contentType()).thenReturn("application/json etc");
     when(mockResponse.body()).thenReturn("<html><body><h1>test</h1></body></html>");
-    assertThrows(JsonSyntaxException.class,() -> jsonHandler.produce(mockResponse) );
+    assertThrows(JsonSyntaxException.class, () -> jsonHandler.produce(mockResponse));
   }
 
   @Test
@@ -121,6 +121,7 @@ public class HttpResponseHandlerTest {
 
     assertEquals(cookies, HttpResponseHandler.EMPTY.produce(mockResponse).cookies);
     assertEquals(cookies, HttpResponseHandler.HTML.produce(mockResponse).cookies);
-    assertEquals(cookies, HttpResponseHandler.JSON(TestJson.class, Map.of()).produce(mockResponse).cookies);
+    assertEquals(
+        cookies, HttpResponseHandler.JSON(TestJson.class, Map.of()).produce(mockResponse).cookies);
   }
 }

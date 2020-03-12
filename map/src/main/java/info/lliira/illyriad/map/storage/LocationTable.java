@@ -51,7 +51,7 @@ public abstract class LocationTable<E extends Location<B>, B extends Location.Bu
         "DELETE FROM " + tableName + " WHERE x >= ? AND x <= ? AND y >= ? AND y <= ?");
   }
 
-  public Optional<E> select(int x, int y)  {
+  public Optional<E> select(int x, int y) {
     return select(newBuilder().x(x).y(y).build());
   }
 
@@ -67,11 +67,11 @@ public abstract class LocationTable<E extends Location<B>, B extends Location.Bu
 
   public synchronized void delete(int minX, int minY, int maxX, int maxY) {
     try {
-    deleteStatement.setInt(1, minX);
-    deleteStatement.setInt(2, maxX);
-    deleteStatement.setInt(3, minY);
-    deleteStatement.setInt(4, maxY);
-    deleteStatement.execute();
+      deleteStatement.setInt(1, minX);
+      deleteStatement.setInt(2, maxX);
+      deleteStatement.setInt(3, minY);
+      deleteStatement.setInt(4, maxY);
+      deleteStatement.execute();
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }

@@ -24,7 +24,6 @@ public class ValidPlotTest {
     assertFalse(plot.minRange(plot(15, 25)));
   }
 
-
   @Test
   public void inRange() {
     var plot = plot(10, 20);
@@ -43,5 +42,4 @@ public class ValidPlotTest {
     assertFalse(plot.inRange(plot(31, 20)));
     assertFalse(plot.inRange(plot(29, 39)));
   }
-
 }

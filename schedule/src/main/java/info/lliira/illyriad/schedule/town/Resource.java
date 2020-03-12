@@ -1,4 +1,4 @@
-package info.lliira.illyriad.schedule.resource;
+package info.lliira.illyriad.schedule.town;
 
 public class Resource {
 
@@ -29,6 +29,7 @@ public class Resource {
   }
 
   public enum Type {
+    None,
     Wood,
     Clay,
     Iron,

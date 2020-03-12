@@ -37,12 +37,15 @@ public interface HttpResponseHandler<O> {
                   : Optional.empty(),
               response.cookies());
 
-  static <T> HttpResponseHandler<Optional<T>> JSON(Class<T> jsonClass, Map<Type, JsonDeserializer<?>> deserializers) {
+  static <T> HttpResponseHandler<Optional<T>> JSON(
+      Class<T> jsonClass, Map<Type, JsonDeserializer<?>> deserializers) {
     return new HttpResponseHandler<>() {
       final GsonBuilder gsonBuilder = new GsonBuilder();
+
       {
         deserializers.forEach(gsonBuilder::registerTypeAdapter);
       }
+
       @Override
       public Response<Optional<T>> produce(Connection.Response response) {
         return new Response<>(

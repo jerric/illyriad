@@ -2,17 +2,26 @@ package info.lliira.illyriad.schedule.building;
 
 import info.lliira.illyriad.common.net.AuthenticatedHttpClient;
 import info.lliira.illyriad.common.net.Authenticator;
+import info.lliira.illyriad.schedule.town.Resource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class BuildingLoader {
   private static final String LAND_PARAM = "land";
   private static final String BUILDING_PARAM = "building";
   private static final String QUERY_URL = "/Town/Building/{land}/{building}";
+  private static final int MIN_BUILDING_INDEX = 1;
+  private static final int MAX_BUILDING_INDEX = 25;
+
+  private static final Logger LOG = LogManager.getLogger(BuildingLoader.class.getSimpleName());
 
   private final AuthenticatedHttpClient.GetHtml queryClient;
 
@@ -20,16 +29,49 @@ public class BuildingLoader {
     this.queryClient = new AuthenticatedHttpClient.GetHtml(QUERY_URL, authenticator);
   }
 
-  public Building load(boolean land, int index) {
+  // Loads one of build of each resource with the lowest nextLevel.
+  public Map<Resource.Type, Building> loadMinLandBuildings() {
+    var buildings = new HashMap<Resource.Type, Building>(5);
+    for (int index = MIN_BUILDING_INDEX; index <= MAX_BUILDING_INDEX; index++) {
+      var buildingOptional = load(true, index);
+      if (buildingOptional.isEmpty()) continue;
+      var building = buildingOptional.get();
+      if (building.type == null) continue;
+      Resource.Type type = building.type.resourceType;
+      var previous = buildings.get(type);
+      if (previous == null || previous.nextLevel > building.nextLevel)
+        buildings.put(type, building);
+    }
+    return buildings;
+  }
+
+  public Map<Building.Type, Building> loadTownBuildings() {
+    var buildings = new HashMap<Building.Type, Building>(MAX_BUILDING_INDEX);
+    for (int index = MIN_BUILDING_INDEX; index <= MAX_BUILDING_INDEX; index++) {
+      var buildingOptional = load(false, index);
+      if (buildingOptional.isEmpty()) continue;
+      var building = buildingOptional.get();
+      if (building.type != null) {
+        buildings.put(building.type, building);
+      } else {
+        LOG.warn("Building with unknown type: {}", building.name);
+      }
+    }
+    return buildings;
+  }
+
+  public Optional<Building> load(boolean land, int index) {
     var params = Map.of(LAND_PARAM, land ? "1" : "0", BUILDING_PARAM, Integer.toString(index));
     var response = queryClient.call(params);
     assert response.output.isPresent();
     return parse(response.output.get());
   }
 
-  private Building parse(Document document) {
+  private Optional<Building> parse(Document document) {
     String name = document.select("h1").text();
-    int level = Integer.parseInt(document.select("h2").text().trim().split("\\s")[1]);
+    String levelString = document.select("h2").text().trim().toLowerCase();
+    if (!levelString.startsWith("level ")) return Optional.empty();
+    int level = Integer.parseInt(levelString.split("\\s")[1]);
     boolean upgrading = false;
     int nextLevel = level + 1;
     int woodCost = 0, clayCost = 0, ironCost = 0, stoneCost = 0, foodConsumption = 0;
@@ -52,7 +94,7 @@ public class BuildingLoader {
       }
     }
 
-    return new Building(
+    return Optional.of(new Building(
         name,
         level,
         upgrading,
@@ -63,7 +105,7 @@ public class BuildingLoader {
         stoneCost,
         foodConsumption,
         time,
-        upgradeFields);
+        upgradeFields));
   }
 
   private int parseCost(String cost) {

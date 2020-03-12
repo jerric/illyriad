@@ -92,7 +92,7 @@ public class CandidateFinder {
     while (iterator.hasNext()) {
       var plot = iterator.next();
       // if (plot.x >= -500 && plot.y >= -1000)
-        plots.add(plot);
+      plots.add(plot);
     }
     return plots;
   }

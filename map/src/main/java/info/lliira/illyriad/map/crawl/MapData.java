@@ -26,6 +26,7 @@ public class MapData {
 
   @SerializedName("h")
   private Map<String, FactionHub> factionHubs;
+
   @SerializedName("m")
   private Map<String, Marker> markers;
 
@@ -231,7 +232,7 @@ public class MapData {
 
     Resource resource(String coordinate) {
       return new Resource.Builder()
-          .type(Resource.ResourceType.parse(type.isBlank()? 0 : Integer.parseInt(type)))
+          .type(Resource.ResourceType.parse(type.isBlank() ? 0 : Integer.parseInt(type)))
           .rd(rd)
           .r(r)
           .coordinate(coordinate)
@@ -242,10 +243,13 @@ public class MapData {
   public static class MovingUnit {
     @SerializedName("d")
     private String name;
+
     @SerializedName("i")
     private String id;
+
     @SerializedName("n")
     private String amount;
+
     private double cx;
     private double cy;
     private double dx;
@@ -255,16 +259,20 @@ public class MapData {
   public static class FactionHub {
     @SerializedName("img")
     private String image;
+
     @SerializedName("n")
     private String name;
+
     @SerializedName("f")
     private String faction;
+
     private String id;
   }
 
   public static class Marker {
     @SerializedName("n")
     private String name;
+
     @SerializedName("img")
     private String image;
   }

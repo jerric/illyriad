@@ -49,7 +49,7 @@ public class Authenticator implements HttpCookieHandler {
 
     // Prepare data to call login
     var loginUrl = loginFields.get(LOGIN_URL_FIELD);
-    var loginClient = new HttpClient.PostHtml(loginUrl,() -> cookies);
+    var loginClient = new HttpClient.PostHtml(loginUrl, () -> cookies);
     var loginData = prepareLoginData(loginFields);
 
     // Call login, and save the cookie;

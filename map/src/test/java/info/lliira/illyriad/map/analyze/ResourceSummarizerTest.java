@@ -92,13 +92,15 @@ public class ResourceSummarizerTest {
     when(storage.save(anyInt(), any(Map.class)))
         .then(
             invocation -> {
-              var yMap = new LinkedHashMap<>((Map<Integer, ResourceSummarizer.SumData>) invocation.getArgument(1));
+              var yMap =
+                  new LinkedHashMap<>(
+                      (Map<Integer, ResourceSummarizer.SumData>) invocation.getArgument(1));
               for (var entry : yMap.entrySet()) {
                 entry.setValue(entry.getValue().copy());
               }
               sums.put(invocation.getArgument(0), yMap);
               return new int[0];
-              });
+            });
 
     Properties properties = new Properties();
     properties.setProperty(REGION_RADIUS_KEY, "1");

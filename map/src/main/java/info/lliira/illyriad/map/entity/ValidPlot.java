@@ -34,20 +34,20 @@ public class ValidPlot extends Location<ValidPlot.Builder> implements Comparable
     return distanceSq >= MIN_DISTANCE_SQ && distanceSq <= MAX_DISTANCE_SQ;
   }
 
-    @Override
-    public String toString() {
-        return super.toString() + " food=" + foodSum + ", total="+ totalSum;
-    }
+  @Override
+  public String toString() {
+    return super.toString() + " food=" + foodSum + ", total=" + totalSum;
+  }
 
-    @Override
+  @Override
   public Builder toBuilder() {
     return new Builder(this);
   }
 
   @Override
   public int compareTo(ValidPlot plot) {
-      int food = plot.foodSum - foodSum;
-      return (food != 0) ? food : plot.totalSum - totalSum;
+    int food = plot.foodSum - foodSum;
+    return (food != 0) ? food : plot.totalSum - totalSum;
   }
 
   public static class Builder extends Location.Builder<ValidPlot> {

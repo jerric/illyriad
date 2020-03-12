@@ -35,7 +35,7 @@ public class NearestPlotFinder {
   public ValidPlot find(int x, int y) {
     var plots = validPlotTable.selectAll();
     var vectors = new ArrayList<Vector>();
-    while(plots.hasNext()) {
+    while (plots.hasNext()) {
       vectors.add(vector(plots.next(), x, y));
     }
     Collections.sort(vectors);
@@ -51,6 +51,7 @@ public class NearestPlotFinder {
   private static class Vector implements Comparable<Vector> {
     private final ValidPlot plot;
     private final int distanceSq;
+
     public Vector(ValidPlot plot, int distanceSq) {
       this.plot = plot;
       this.distanceSq = distanceSq;

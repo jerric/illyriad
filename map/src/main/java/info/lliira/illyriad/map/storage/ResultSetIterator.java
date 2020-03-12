@@ -6,38 +6,38 @@ import java.util.Iterator;
 import java.util.function.Function;
 
 public class ResultSetIterator<E> implements Iterator<E> {
-    private final ResultSet resultSet;
-    private Function<ResultSet, E> converter;
-    private E next;
+  private final ResultSet resultSet;
+  private Function<ResultSet, E> converter;
+  private E next;
 
-    public ResultSetIterator(ResultSet resultSet, Function<ResultSet, E> converter) {
-        this.resultSet = resultSet;
-        this.converter = converter;
-        this.next = moveToNext();
-    }
+  public ResultSetIterator(ResultSet resultSet, Function<ResultSet, E> converter) {
+    this.resultSet = resultSet;
+    this.converter = converter;
+    this.next = moveToNext();
+  }
 
-    @Override
-    public synchronized boolean hasNext() {
-        return next != null;
-    }
+  @Override
+  public synchronized boolean hasNext() {
+    return next != null;
+  }
 
-    @Override
-    public synchronized E next() {
-        E entity = next;
-        next = moveToNext();
-        return entity;
-    }
+  @Override
+  public synchronized E next() {
+    E entity = next;
+    next = moveToNext();
+    return entity;
+  }
 
-    private E moveToNext() {
-        try {
-            if (!resultSet.isClosed() && resultSet.next()) {
-                return converter.apply(resultSet);
-            } else {
-                resultSet.close();
-                return null;
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+  private E moveToNext() {
+    try {
+      if (!resultSet.isClosed() && resultSet.next()) {
+        return converter.apply(resultSet);
+      } else {
+        resultSet.close();
+        return null;
+      }
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
     }
+  }
 }

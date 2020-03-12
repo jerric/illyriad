@@ -12,7 +12,7 @@ public class ResourceTable extends LocationTable<Resource, Resource.Builder> {
           new Field<>("rd", FieldType.STRING, r -> r.rd, Resource.Builder::rd),
           new Field<>("r", FieldType.INT, r -> r.r, Resource.Builder::r));
 
-  ResourceTable(Connection connection)  {
+  ResourceTable(Connection connection) {
     super(connection, "resources", DATA_FIELDS);
   }
 

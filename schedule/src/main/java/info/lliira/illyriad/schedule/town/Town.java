@@ -1,4 +1,4 @@
-package info.lliira.illyriad.schedule.resource;
+package info.lliira.illyriad.schedule.town;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -32,7 +32,9 @@ public class Town {
 
   @Override
   public String toString() {
-    return String.format("%s %s %s %s %s %s",
+    return String.format(
+        "Town#%d: %s %s %s %s %s %s",
+        current().orElse(new TownEntity(0, "N/A", true)).id,
         resources.get(Resource.Type.Gold),
         resources.get(Resource.Type.Wood),
         resources.get(Resource.Type.Clay),

@@ -3,15 +3,17 @@ package info.lliira.illyriad.schedule.building;
 import info.lliira.illyriad.common.Constants;
 import info.lliira.illyriad.common.net.Authenticator;
 import info.lliira.illyriad.schedule.Scheduler;
-import info.lliira.illyriad.schedule.resource.Resource;
-import info.lliira.illyriad.schedule.resource.Town;
-import info.lliira.illyriad.schedule.resource.TownLoader;
+import info.lliira.illyriad.schedule.town.Resource;
+import info.lliira.illyriad.schedule.town.Town;
+import info.lliira.illyriad.schedule.town.TownEntity;
+import info.lliira.illyriad.schedule.town.TownLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -26,9 +28,9 @@ public class BuildingScheduler extends Scheduler {
     scheduler.run();
   }
 
-  private static final int MIN_BUILDING_INDEX = 1;
-  private static final int MAX_BUILDING_INDEX = 25;
   private static final double FOOD_RATIO = 0.2;
+  private static final double STORAGE_RATIO = 0.8;
+
   private static final Map<Resource.Type, Double> BUILDING_RESOURCE_TYPES = new HashMap<>();
 
   static {
@@ -45,6 +47,7 @@ public class BuildingScheduler extends Scheduler {
   private final BuildingUpgrader buildingUpgrader;
 
   public BuildingScheduler(Authenticator authenticator) {
+    super(BuildingScheduler.class.getSimpleName());
     this.townLoader = new TownLoader(authenticator);
     this.buildingLoader = new BuildingLoader(authenticator);
     this.buildingUpgrader = new BuildingUpgrader(authenticator);
@@ -52,34 +55,60 @@ public class BuildingScheduler extends Scheduler {
 
   @Override
   public long schedule() {
-    LOG.info("=============== Loading Town Resources ===============");
+    LOG.info("=============== Scheduling Constructions ===============");
     var town = townLoader.loadTown();
+    long minTime = Long.MAX_VALUE;
+    for (var entity : town.towns.values()) {
+      long wait = schedule(entity);
+      minTime = Math.min(minTime, wait);
+    }
+    return minTime;
+  }
+
+  private long schedule(TownEntity entity) {
+    LOG.info("Switching to town#{}", entity.id);
+    var town = townLoader.changeTown(entity);
     LOG.info(town);
     LOG.info("{} constructions in progress", town.progress.constructionCount());
 
-    long toWaitMillis = 0;
+    Duration waitDuration;
     if (town.progress.construction1.isEmpty()) {
       Building building = findNextToUpgrade(town);
-      toWaitMillis = waitTillEnoughResources(town, building);
-      if (toWaitMillis == 0) {
+      waitDuration = waitTillEnoughResources(town, building);
+      if (waitDuration.getSeconds() == 0) {
         LOG.info("Constructing Next building: {} -> level {}", building.name, building.nextLevel);
         buildingUpgrader.upgrade(building);
-        toWaitMillis = building.time.toMillis();
+        // Add 5 sec buffer as the actual time is usually +5 than the estimated time.
+        waitDuration = building.time.plusSeconds(5);
       } else {
         LOG.info(
             "Lack resources for Next building: {} -> level {}", building.name, building.nextLevel);
       }
-    } else toWaitMillis = town.progress.constructionTimestamp() - System.currentTimeMillis();
-    LOG.info("Waiting for {} seconds", String.format("%,d", toWaitMillis / 1000));
-    return toWaitMillis;
+    } else {
+      waitDuration =
+          Duration.ofMillis(
+              Math.max(1, town.progress.constructionTimestamp() - System.currentTimeMillis()));
+    }
+    LOG.info(
+        String.format(
+            "Next construction will start in %02d:%02d:%02d",
+            waitDuration.toHours(), waitDuration.toMinutesPart(), waitDuration.toSecondsPart()));
+    return waitDuration.toMillis();
   }
 
   private Building findNextToUpgrade(Town town) {
-    var resourceBuildings = loadResourceBuildings();
+    var landBuildings = buildingLoader.loadMinLandBuildings();
+    var townBuildings = buildingLoader.loadTownBuildings();
     long toTimestamp = town.progress.constructionTimestamp();
 
+    // check if the storage is near full, and we need to build more storage
+    if (shouldScheduleStorage(town, toTimestamp)) {
+      var storageBuilding = findStorageBuilding(townBuildings);
+      if (storageBuilding != null) return storageBuilding;
+    }
+
     // check if we need to produce food
-    if (shouldScheduleFood(town, toTimestamp)) return resourceBuildings.get(Resource.Type.Food);
+    if (shouldScheduleFood(town, toTimestamp)) return landBuildings.get(Resource.Type.Food);
 
     // choose the lowest resource type at the timestamp
     Resource minResource = null;
@@ -92,7 +121,7 @@ public class BuildingScheduler extends Scheduler {
         minAmount = amount;
       }
     }
-    return resourceBuildings.get(minResource.type);
+    return landBuildings.get(minResource.type);
   }
 
   private boolean shouldScheduleFood(Town town, long toTimestamp) {
@@ -108,32 +137,31 @@ public class BuildingScheduler extends Scheduler {
     return FOOD_RATIO * sum / BUILDING_RESOURCE_TYPES.size() > food.till(toTimestamp);
   }
 
-  // Loads one of build of each resource with the lowest nextLevel.
-  private Map<Resource.Type, Building> loadResourceBuildings() {
-    var buildings = new HashMap<Resource.Type, Building>(5);
-    for (int index = MIN_BUILDING_INDEX; index <= MAX_BUILDING_INDEX; index++) {
-      var building = buildingLoader.load(true, index);
-      Resource.Type type = building.type.resourceType;
-      var previous = buildings.get(type);
-      if (previous == null || previous.nextLevel > building.nextLevel)
-        buildings.put(type, building);
-    }
-    return buildings;
+  private Duration waitTillEnoughResources(Town town, Building building) {
+    long max = waitSeconds(building.woodCost, town.resources.get(Resource.Type.Wood));
+    max = Math.max(max, waitSeconds(building.clayCost, town.resources.get(Resource.Type.Clay)));
+    max = Math.max(max, waitSeconds(building.ironCost, town.resources.get(Resource.Type.Iron)));
+    max = Math.max(max, waitSeconds(building.stoneCost, town.resources.get(Resource.Type.Stone)));
+    return Duration.ofSeconds(max);
   }
 
-  private long waitTillEnoughResources(Town town, Building building) {
-    long waitMillis = waitTill(building.woodCost, town.resources.get(Resource.Type.Wood));
-    waitMillis =
-        Math.max(waitMillis, waitTill(building.clayCost, town.resources.get(Resource.Type.Clay)));
-    waitMillis =
-        Math.max(waitMillis, waitTill(building.ironCost, town.resources.get(Resource.Type.Iron)));
-    waitMillis =
-        Math.max(waitMillis, waitTill(building.stoneCost, town.resources.get(Resource.Type.Stone)));
-    return waitMillis;
-  }
-
-  private long waitTill(int cost, Resource resource) {
+  private long waitSeconds(int cost, Resource resource) {
     int diff = cost - resource.current();
-    return (diff <= 0) ? 0 : Math.round(Math.ceil(1.0 * diff / resource.rate * 3_600_000));
+    return Math.max(0, Math.round(Math.ceil(1.0 * diff / resource.rate * 3_600)));
+  }
+
+  private boolean shouldScheduleStorage(Town town, long toTimeStamp) {
+    var townInfo = townLoader.loadTownInfo();
+    LOG.info("Town info: {}", townInfo);
+    int max = 0;
+    for (var resource : town.resources.values()) {
+      max = Math.max(max, resource.till(toTimeStamp));
+    }
+    return 1.0 * max / townInfo.capacity > STORAGE_RATIO;
+  }
+
+  private Building findStorageBuilding(Map<Building.Type, Building> townBuildings) {
+    // TODO: decide between storage house and warehouse.
+    return townBuildings.get(Building.Type.StoreHouse);
   }
 }

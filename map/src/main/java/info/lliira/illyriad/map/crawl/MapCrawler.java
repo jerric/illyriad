@@ -49,7 +49,7 @@ public class MapCrawler {
     this.storageFactory = storageFactory;
   }
 
-  public void crawl()  {
+  public void crawl() {
     LOG.info("Cleaning up old data");
     cleanUp();
     LOG.info("Creating crawl tasks...");

@@ -2,7 +2,6 @@ package info.lliira.illyriad.map;
 
 import info.lliira.illyriad.common.Constants;
 import info.lliira.illyriad.common.net.Authenticator;
-import info.lliira.illyriad.map.analyze.CandidateFinder;
 import info.lliira.illyriad.map.analyze.ResourceSummarizer;
 import info.lliira.illyriad.map.analyze.ValidPlotMarker;
 import info.lliira.illyriad.map.crawl.MapCrawler;
@@ -31,8 +30,7 @@ public class MapProcessor {
     var marker = new ValidPlotMarker(storageFactory);
     marker.run();
 
-//    var finder = new CandidateFinder(storageFactory);
-//    finder.run();
+    //    var finder = new CandidateFinder(storageFactory);
+    //    finder.run();
   }
-
 }

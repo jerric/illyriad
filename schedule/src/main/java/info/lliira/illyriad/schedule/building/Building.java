@@ -1,6 +1,6 @@
 package info.lliira.illyriad.schedule.building;
 
-import info.lliira.illyriad.schedule.resource.Resource;
+import info.lliira.illyriad.schedule.town.Resource;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -24,12 +24,15 @@ public class Building {
   public Building(
       String name,
       int level,
-      boolean upgrading, int nextLevel, int woodCost,
+      boolean upgrading,
+      int nextLevel,
+      int woodCost,
       int clayCost,
       int ironCost,
       int stoneCost,
       int foodConsumption,
-      Duration time, Map<String, String> upgradeFields) {
+      Duration time,
+      Map<String, String> upgradeFields) {
     this.name = name;
     this.type = Type.parse(name);
     this.level = level;
@@ -45,24 +48,27 @@ public class Building {
   }
 
   public enum Type {
-    Lumberjack("Lumberjack", Resource.Type.Wood),
-    ClayPit("Clay Pit", Resource.Type.Clay),
-    IronMine("Iron Mine", Resource.Type.Iron),
-    Quarry("Quarry", Resource.Type.Stone),
-    Farm("Farmyard", Resource.Type.Food);
+    Lumberjack(Resource.Type.Wood),
+    ClayPit(Resource.Type.Clay),
+    IronMine(Resource.Type.Iron),
+    Quarry(Resource.Type.Stone),
+    Farmyard(Resource.Type.Food),
+    Library(Resource.Type.Research),
+    MageTower(Resource.Type.Mana),
+    StoreHouse(Resource.Type.None),
+    MarketPlace(Resource.Type.None);
 
     private static final Map<String, Type> TYPES =
-        Arrays.stream(values()).collect(Collectors.toMap(type -> type.name, type -> type));
+        Arrays.stream(values()).collect(Collectors.toMap(Type::name, type -> type));
 
     public static Type parse(String name) {
+      name = name.replaceAll("\\s+", "");
       return TYPES.get(name);
     }
 
-    public final String name;
     public final Resource.Type resourceType;
 
-    Type(String name, Resource.Type resourceType) {
-      this.name = name;
+    Type(Resource.Type resourceType) {
       this.resourceType = resourceType;
     }
   }

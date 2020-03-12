@@ -11,7 +11,7 @@ public interface HttpRequestHandler<I> {
   HttpRequestHandler<Map<String, String>> GET =
       (url, queryParams) -> {
         for (var param : queryParams.entrySet()) {
-          url = url.replace("{"+param.getKey() + "}", param.getValue());
+          url = url.replace("{" + param.getKey() + "}", param.getValue());
         }
         return Jsoup.connect(url).method(Connection.Method.GET);
       };
