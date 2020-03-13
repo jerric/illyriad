@@ -126,7 +126,7 @@ public class BuildingScheduler extends Scheduler {
 
   private void savePendingBuildings(
       TownEntity entity, Building updated, LinkedList<Building.Type> pendingBuildings) {
-    if (updated.type == pendingBuildings.getFirst()) {
+    if (!pendingBuildings.isEmpty() && updated.type == pendingBuildings.getFirst()) {
       // the first pending build was scheduled, remove it from the list and save back
       pendingBuildings.pollFirst();
       var pendingFile = new File(PENDING_BUILDING_FILE_PREFIX + entity.id);
