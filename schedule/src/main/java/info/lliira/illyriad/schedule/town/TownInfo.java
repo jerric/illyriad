@@ -1,8 +1,5 @@
 package info.lliira.illyriad.schedule.town;
 
-import java.awt.*;
-import java.util.Date;
-
 public class TownInfo {
   public final String cityName;
   public final Race race;
@@ -34,5 +31,11 @@ public class TownInfo {
     Elf,
     Dwarf,
     Orc
+  }
+
+  @Override
+  public String toString() {
+    return String.format(
+        "[%s] %s '%s'(%s) pop=%,d, cap=%,d", location, size, cityName, race, population, capacity);
   }
 }

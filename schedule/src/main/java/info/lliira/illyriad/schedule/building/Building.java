@@ -55,14 +55,20 @@ public class Building {
     Farmyard(Resource.Type.Food),
     Library(Resource.Type.Research),
     MageTower(Resource.Type.Mana),
-    StoreHouse(Resource.Type.None),
-    MarketPlace(Resource.Type.None);
+    ArchitectsOffice(Resource.Type.None),
+    Brewery(Resource.Type.None),
+    CommonGround(Resource.Type.None),
+    Marketplace(Resource.Type.None),
+    Paddock(Resource.Type.None),
+    Saddlemaker(Resource.Type.None),
+    Storehouse(Resource.Type.None),
+    Warehouse(Resource.Type.None);
 
     private static final Map<String, Type> TYPES =
         Arrays.stream(values()).collect(Collectors.toMap(Type::name, type -> type));
 
     public static Type parse(String name) {
-      name = name.replaceAll("\\s+", "");
+      name = name.replaceAll("[\\s']", "");
       return TYPES.get(name);
     }
 
