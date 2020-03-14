@@ -56,12 +56,22 @@ public class Building {
     Library(Resource.Type.Research),
     MageTower(Resource.Type.Mana),
     ArchitectsOffice(Resource.Type.None),
+    Barracks(Resource.Type.None),
+    BookBinder(Resource.Type.None),
     Brewery(Resource.Type.None),
+    Carpentry(Resource.Type.None),
     CommonGround(Resource.Type.None),
+    Consulate(Resource.Type.None),
+    Foundry(Resource.Type.None),
     Marketplace(Resource.Type.None),
     Paddock(Resource.Type.None),
     Saddlemaker(Resource.Type.None),
+    Spearmaker(Resource.Type.None),
+    Stonemason(Resource.Type.None),
     Storehouse(Resource.Type.None),
+    Tannery(Resource.Type.None),
+    Tavern(Resource.Type.None),
+    Vault(Resource.Type.None),
     Warehouse(Resource.Type.None);
 
     private static final Map<String, Type> TYPES =
