@@ -9,6 +9,8 @@ import java.util.concurrent.TimeUnit;
 public abstract class Scheduler implements Runnable {
   // max is 10 minutes
   private static final long MAX_WAIT_TIME_MILLIS = TimeUnit.MINUTES.toMillis(10);
+  // min is 1 second
+  private static final long MIN_WAIT_TIME_MILLIS = TimeUnit.SECONDS.toMillis(1);
 
   private final Logger log;
   private boolean running;
@@ -21,13 +23,14 @@ public abstract class Scheduler implements Runnable {
     running = false;
   }
 
+  /** Schedule the task, and returns wait time for next task in milliseconds. */
   public abstract long schedule();
 
   @Override
   public void run() {
     running = true;
     while (running) {
-      long wait = Math.min(MAX_WAIT_TIME_MILLIS, schedule());
+      long wait = Math.max(MIN_WAIT_TIME_MILLIS, Math.min(MAX_WAIT_TIME_MILLIS, schedule()));
       Duration duration = Duration.ofMillis(wait);
       log.info(
           String.format("Wait for %02d:%02d", duration.toMinutesPart(), duration.toSecondsPart()));

@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BuildingLoaderTest {
 
-  private BuildingLoader      buildingLoader = new BuildingLoader(TestHelper.AUTHENTICATOR);
+  private BuildingLoader buildingLoader = new BuildingLoader(TestHelper.AUTHENTICATOR);
 
   @Test
   public void loadBuilding() {

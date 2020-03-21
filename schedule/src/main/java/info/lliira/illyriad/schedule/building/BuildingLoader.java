@@ -82,8 +82,7 @@ public class BuildingLoader {
       if (legend.equals("Building works in progress")) upgrading = true;
       else if (legend.equals("Upgrade Further")) {
         var rows = fieldSet.select("table tr");
-        if (rows.isEmpty() || rows.get(0).children().isEmpty())
-          continue;
+        if (rows.isEmpty() || rows.get(0).children().isEmpty()) continue;
         nextLevel = Integer.parseInt(rows.get(0).child(0).text().trim().split(" ")[1]);
         var costCells = rows.get(1).children();
         woodCost = parseCost(costCells.get(0).text());
@@ -96,18 +95,19 @@ public class BuildingLoader {
       }
     }
 
-    return Optional.of(new Building(
-        name,
-        level,
-        upgrading,
-        nextLevel,
-        woodCost,
-        clayCost,
-        ironCost,
-        stoneCost,
-        foodConsumption,
-        time,
-        upgradeFields));
+    return Optional.of(
+        new Building(
+            name,
+            level,
+            upgrading,
+            nextLevel,
+            woodCost,
+            clayCost,
+            ironCost,
+            stoneCost,
+            foodConsumption,
+            time,
+            upgradeFields));
   }
 
   private int parseCost(String cost) {

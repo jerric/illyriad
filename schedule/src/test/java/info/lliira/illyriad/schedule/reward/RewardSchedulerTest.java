@@ -1,11 +1,12 @@
 package info.lliira.illyriad.schedule.reward;
 
 import info.lliira.illyriad.schedule.TestHelper;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.Calendar;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class RewardSchedulerTest {
 
@@ -14,7 +15,7 @@ public class RewardSchedulerTest {
     var scheduler = new RewardScheduler(TestHelper.AUTHENTICATOR);
 
     Calendar now = Calendar.getInstance();
-    now.set(2020,Calendar.JANUARY, 1,0,20,20);
+    now.set(2020, Calendar.JANUARY, 1, 0, 20, 20);
     assertEquals(Duration.ofHours(2), scheduler.parseDifference(8, 20, 20, now));
     assertEquals(Duration.ofHours(2), scheduler.parseDifference(6, 10, 20, now));
   }

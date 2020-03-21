@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Random;
+import java.util.stream.Collectors;
 
 public class BuildingScheduler extends Scheduler {
 
@@ -31,12 +33,16 @@ public class BuildingScheduler extends Scheduler {
     Properties properties = new Properties();
     properties.load(new FileReader(new File(Constants.PROPERTY_FILE)));
     var authenticator = new Authenticator(properties);
-    var scheduler = new BuildingScheduler(authenticator);
+    var scheduler = new BuildingScheduler(authenticator, properties);
     scheduler.run();
   }
 
-  private static final double FOOD_RATIO = 0.2;
-  private static final double STORAGE_RATIO = 0.8;
+  private static final String FOOD_RATIO_FIELD = "schedule.food.ratio";
+  private static final String STORAGE_RATIO_FIELD = "schedule.storage.ratio";
+  private static final String MAX_BUILDING_LEVEL_FIELD = "schedule.max.building.level";
+  private static final double DEFAULT_FOOD_RATIO = 0.2;
+  private static final double DEFAULT_STORAGE_RATIO = 0.8;
+  private static final int MAX_BUILDING_LEVEL = 20;
   private static final String PENDING_BUILDING_FILE_PREFIX = "building.pending.";
 
   private static final Map<Resource.Type, Double> BUILDING_RESOURCE_TYPES = new HashMap<>();
@@ -53,12 +59,26 @@ public class BuildingScheduler extends Scheduler {
   private final TownLoader townLoader;
   private final BuildingLoader buildingLoader;
   private final BuildingUpgrader buildingUpgrader;
+  private final double foodRatio;
+  private final double storageRatio;
+  private final int maxBuildingLevel;
+  private final Random random;
 
-  public BuildingScheduler(Authenticator authenticator) {
+  public BuildingScheduler(Authenticator authenticator, Properties properties) {
     super(BuildingScheduler.class.getSimpleName());
     this.townLoader = new TownLoader(authenticator);
     this.buildingLoader = new BuildingLoader(authenticator);
     this.buildingUpgrader = new BuildingUpgrader(authenticator);
+    this.foodRatio =
+        Double.parseDouble(
+            properties.getProperty(FOOD_RATIO_FIELD, Double.toString(DEFAULT_FOOD_RATIO)));
+    this.storageRatio =
+        Double.parseDouble(
+            properties.getProperty(STORAGE_RATIO_FIELD, Double.toString(DEFAULT_STORAGE_RATIO)));
+    this.maxBuildingLevel =
+        Integer.parseInt(
+            properties.getProperty(MAX_BUILDING_LEVEL_FIELD, Integer.toString(MAX_BUILDING_LEVEL)));
+    this.random = new Random();
   }
 
   @Override
@@ -160,7 +180,8 @@ public class BuildingScheduler extends Scheduler {
     // check if we need to produce food
     if (shouldScheduleFood(town)) {
       var foodBuilding = landBuildings.get(Resource.Type.Food);
-      if (foodBuilding != null) return Optional.of(foodBuilding);
+      if (foodBuilding != null && foodBuilding.nextLevel <= maxBuildingLevel)
+        return Optional.of(foodBuilding);
     }
 
     // choose the resource that takes the longest to fill the storage
@@ -174,7 +195,18 @@ public class BuildingScheduler extends Scheduler {
         longestTime = timeToFull;
       }
     }
-    return Optional.ofNullable(landBuildings.get(minType));
+    var landBuilding = landBuildings.get(minType);
+    if (landBuilding != null && landBuilding.nextLevel <= maxBuildingLevel)
+      return Optional.of(landBuilding);
+
+    // no land building available, pick a random town building;
+    var candidates =
+        townBuildings.values().stream()
+            .filter(building -> building.nextLevel <= maxBuildingLevel)
+            .collect(Collectors.toList());
+    return candidates.isEmpty()
+        ? Optional.empty()
+        : Optional.of(candidates.get(random.nextInt(candidates.size())));
   }
 
   private boolean shouldScheduleFood(Town town) {
@@ -187,7 +219,7 @@ public class BuildingScheduler extends Scheduler {
     for (Resource.Type type : BUILDING_RESOURCE_TYPES.keySet()) {
       sum += town.resources.get(type).current();
     }
-    return FOOD_RATIO * sum / BUILDING_RESOURCE_TYPES.size() > food.current();
+    return foodRatio * sum / BUILDING_RESOURCE_TYPES.size() > food.current();
   }
 
   private Duration waitTillEnoughResources(Town town, Building building) {
@@ -210,7 +242,7 @@ public class BuildingScheduler extends Scheduler {
       if (resource.type == Resource.Type.Gold) continue;
       max = Math.max(max, resource.current());
     }
-    return 1.0 * max / townInfo.capacity > STORAGE_RATIO;
+    return 1.0 * max / townInfo.capacity > storageRatio;
   }
 
   private Optional<Building> findStorageBuilding(Map<Building.Type, Building> townBuildings) {

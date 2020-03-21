@@ -91,10 +91,11 @@ public class RewardScheduler extends Scheduler {
     int nowMinutes = now.get(Calendar.MINUTE);
     int nowSeconds = now.get(Calendar.SECOND);
     long diff =
-        (hours - (nowHours + 6) + 24) % 24 * 3600L + (minutes - nowMinutes) * 60 + (seconds - nowSeconds);
+        (hours - (nowHours + 6) + 24) % 24 * 3600L
+            + (minutes - nowMinutes) * 60
+            + (seconds - nowSeconds);
     if (diff < 0) diff += TimeUnit.DAYS.toSeconds(1);
     return Duration.ofSeconds(diff);
-
   }
 
   private static class Reward {

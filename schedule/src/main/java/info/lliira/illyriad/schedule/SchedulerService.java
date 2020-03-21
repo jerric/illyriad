@@ -25,7 +25,9 @@ public final class SchedulerService {
     var properties = new Properties();
     properties.load(new FileReader(new File(Constants.PROPERTY_FILE)));
     var authenticator = new Authenticator(properties);
-    schedulers = List.of(new BuildingScheduler(authenticator), new RewardScheduler(authenticator));
+    schedulers =
+        List.of(
+            new BuildingScheduler(authenticator, properties), new RewardScheduler(authenticator));
   }
 
   public void run() {

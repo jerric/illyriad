@@ -4,14 +4,10 @@ import java.util.Optional;
 
 public class QuestStatus {
   public final Optional<Quest> quest;
-  public final Optional<Long> waitTimeSeconds;
+  public final long waitTimeSeconds;
 
-  public QuestStatus(Optional<Quest> quest, Optional<Long> waitTimeSeconds) {
+  public QuestStatus(Optional<Quest> quest, long waitTimeSeconds) {
     this.quest = quest;
     this.waitTimeSeconds = waitTimeSeconds;
-  }
-
-  public boolean newQuest() {
-    return quest.isPresent();
   }
 }
