@@ -1,9 +1,9 @@
 package info.lliira.illyriad.schedule;
 
+import info.lliira.illyriad.common.WaitTime;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 public abstract class Scheduler implements Runnable {
@@ -24,20 +24,22 @@ public abstract class Scheduler implements Runnable {
   }
 
   /** Schedule the task, and returns wait time for next task in milliseconds. */
-  public abstract long schedule();
+  public abstract WaitTime schedule();
 
   @Override
   public void run() {
     running = true;
     while (running) {
-      long wait = Math.max(MIN_WAIT_TIME_MILLIS, Math.min(MAX_WAIT_TIME_MILLIS, schedule()));
-      Duration duration = Duration.ofMillis(wait);
-      log.info(
-          String.format("Wait for %02d:%02d", duration.toMinutesPart(), duration.toSecondsPart()));
       try {
+        var waitTime = schedule();
+        log.info("Wait for {}", waitTime);
+        long wait =
+            Math.max(MIN_WAIT_TIME_MILLIS, Math.min(MAX_WAIT_TIME_MILLIS, waitTime.millis()));
         Thread.sleep(wait);
       } catch (InterruptedException e) {
         // do nothing.
+      } catch (RuntimeException e) {
+        log.error(e.getMessage(), e);
       }
     }
   }

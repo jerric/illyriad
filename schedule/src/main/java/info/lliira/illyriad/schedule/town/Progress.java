@@ -1,18 +1,20 @@
 package info.lliira.illyriad.schedule.town;
 
+import info.lliira.illyriad.common.WaitTime;
+
 import java.util.Optional;
 
 public class Progress {
-  public final Optional<Long> construction1;
-  public final Optional<Long> construction2;
-  public final Optional<Long> research1;
-  public final Optional<Long> research2;
+  public final Optional<WaitTime> construction1;
+  public final Optional<WaitTime> construction2;
+  public final Optional<WaitTime> research1;
+  public final Optional<WaitTime> research2;
 
   public Progress(
-      Optional<Long> construction1,
-      Optional<Long> construction2,
-      Optional<Long> research1,
-      Optional<Long> research2) {
+      Optional<WaitTime> construction1,
+      Optional<WaitTime> construction2,
+      Optional<WaitTime> research1,
+      Optional<WaitTime> research2) {
     this.construction1 = construction1;
     this.construction2 = construction2;
     this.research1 = research1;
@@ -23,7 +25,7 @@ public class Progress {
     return construction2.isPresent() ? 2 : construction1.isPresent() ? 1 : 0;
   }
 
-  public long constructionTimestamp() {
-    return construction2.orElse(construction1.orElse(System.currentTimeMillis()));
+  public WaitTime constructionWaitTime() {
+    return construction2.orElse(construction1.orElse(new WaitTime(0)));
   }
 }

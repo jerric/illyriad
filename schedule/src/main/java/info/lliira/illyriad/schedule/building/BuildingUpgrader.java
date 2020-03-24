@@ -12,10 +12,10 @@ public class BuildingUpgrader {
     this.upgradeClient = new AuthenticatedHttpClient.PostHtml(UPGRADE_URL, authenticator);
   }
 
-  public boolean upgrade(Building building) {
-    if (building.upgradeFields.isEmpty()) return false;
+  public void upgrade(Building building) {
+    if (building.upgradeFields.isEmpty()) return;
 
     var response = upgradeClient.call(building.upgradeFields);
-    return response.output.isPresent();
+    assert response.output.isPresent();
   }
 }

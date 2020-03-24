@@ -1,6 +1,7 @@
 package info.lliira.illyriad.schedule.reward;
 
 import info.lliira.illyriad.common.Constants;
+import info.lliira.illyriad.common.WaitTime;
 import info.lliira.illyriad.common.net.AuthenticatedHttpClient;
 import info.lliira.illyriad.common.net.Authenticator;
 import info.lliira.illyriad.schedule.Scheduler;
@@ -11,7 +12,6 @@ import org.jsoup.nodes.Document;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,43 +42,40 @@ public class RewardScheduler extends Scheduler {
   }
 
   @Override
-  public long schedule() {
+  public WaitTime schedule() {
     LOG.info("=============== Scheduling Reward ===============");
     var response = queryClient.call(Map.of());
     assert response.output.isPresent();
     var reward = parsePrestigeReward(response.output.get());
-    Duration waitDuration;
+    WaitTime waitTime;
     if (reward.hasReward) {
       LOG.info("Claiming reward...");
       claimClient.call(reward.prestigeFields);
-      waitDuration = Duration.ofDays(1);
+      waitTime = new WaitTime(TimeUnit.DAYS.toSeconds(1));
     } else {
-      waitDuration = reward.waitTime;
-      LOG.info(
-          String.format(
-              "Reward will be ready in %02d:%02d:%02d",
-              waitDuration.toHours(), waitDuration.toMinutesPart(), waitDuration.toSecondsPart()));
+      waitTime = reward.waitTime;
+      LOG.info("Reward will be ready in {}", waitTime);
     }
-    return waitDuration.toMillis();
+    return waitTime;
   }
 
   private Reward parsePrestigeReward(Document document) {
     var form = document.select("tr.middle form").get(0);
     var fields = new HashMap<String, String>();
     var hasReward = true;
-    var waitDuration = Duration.ofMillis(0);
+    var waitTime = new WaitTime(0);
     for (var input : form.select("input")) {
       String name = input.attr("name");
       if (!name.isBlank()) fields.put(name, input.val());
       if (input.attr("type").equals("submit") && input.attr("disabled").equals("disabled")) {
         hasReward = false;
-        waitDuration = parseWaitDuration(document);
+        waitTime = parseWaitDuration(document);
       }
     }
-    return new Reward(hasReward, fields, waitDuration);
+    return new Reward(hasReward, fields, waitTime);
   }
 
-  private Duration parseWaitDuration(Document document) {
+  private WaitTime parseWaitDuration(Document document) {
     var parts = document.select("div").get(1).text().trim().split("[\\s:.]");
     int hours = Integer.parseInt(parts[parts.length - 3]);
     int minutes = Integer.parseInt(parts[parts.length - 2]);
@@ -86,7 +83,7 @@ public class RewardScheduler extends Scheduler {
     return parseDifference(hours, minutes, seconds, Calendar.getInstance());
   }
 
-  Duration parseDifference(int hours, int minutes, int seconds, Calendar now) {
+  WaitTime parseDifference(int hours, int minutes, int seconds, Calendar now) {
     int nowHours = now.get(Calendar.HOUR_OF_DAY);
     int nowMinutes = now.get(Calendar.MINUTE);
     int nowSeconds = now.get(Calendar.SECOND);
@@ -95,15 +92,15 @@ public class RewardScheduler extends Scheduler {
             + (minutes - nowMinutes) * 60
             + (seconds - nowSeconds);
     if (diff < 0) diff += TimeUnit.DAYS.toSeconds(1);
-    return Duration.ofSeconds(diff);
+    return new WaitTime(diff);
   }
 
   private static class Reward {
     private final boolean hasReward;
     private final Map<String, String> prestigeFields;
-    private final Duration waitTime;
+    private final WaitTime waitTime;
 
-    private Reward(boolean hasReward, Map<String, String> prestigeFields, Duration waitTime) {
+    private Reward(boolean hasReward, Map<String, String> prestigeFields, WaitTime waitTime) {
       this.hasReward = hasReward;
       this.prestigeFields = prestigeFields;
       this.waitTime = waitTime;

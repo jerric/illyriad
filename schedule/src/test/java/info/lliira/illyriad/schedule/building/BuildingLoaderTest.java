@@ -29,7 +29,7 @@ public class BuildingLoaderTest {
       } else {
         assertEquals(building.level + 1, building.nextLevel);
       }
-      assertTrue(building.time.getSeconds() > 0);
+      assertTrue(building.time.millis() > 0);
       assertEquals(4, building.upgradeFields.size());
     }
   }

@@ -1,5 +1,6 @@
 package info.lliira.illyriad.schedule.building;
 
+import info.lliira.illyriad.common.WaitTime;
 import info.lliira.illyriad.common.net.AuthenticatedHttpClient;
 import info.lliira.illyriad.common.net.Authenticator;
 import info.lliira.illyriad.schedule.town.Resource;
@@ -8,10 +9,10 @@ import org.apache.logging.log4j.Logger;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class BuildingLoader {
@@ -36,7 +37,10 @@ public class BuildingLoader {
       var buildingOptional = load(true, index);
       if (buildingOptional.isEmpty()) continue;
       var building = buildingOptional.get();
-      if (building.type == null) continue;
+      if (building.type == null) {
+        LOG.warn("Missing type for building: {}", building.name);
+        continue;
+      }
       Resource.Type type = building.type.resourceType;
       var previous = buildings.get(type);
       if (previous == null || previous.nextLevel > building.nextLevel)
@@ -70,12 +74,14 @@ public class BuildingLoader {
   private Optional<Building> parse(Document document) {
     String name = document.select("h1").text();
     String levelString = document.select("h2").text().trim().toLowerCase();
-    if (!levelString.startsWith("level ")) return Optional.empty();
+    if (!levelString.startsWith("level ")) {
+      return Optional.empty();
+    }
     int level = Integer.parseInt(levelString.split("\\s")[1]);
     boolean upgrading = false;
     int nextLevel = level + 1;
     int woodCost = 0, clayCost = 0, ironCost = 0, stoneCost = 0, foodConsumption = 0;
-    Duration time = Duration.ofSeconds(0);
+    WaitTime time = new WaitTime(0);
     Map<String, String> upgradeFields = Map.of();
     for (var fieldSet : document.select("fieldset")) {
       String legend = fieldSet.select("legend").text().trim();
@@ -124,16 +130,16 @@ public class BuildingLoader {
         .collect(Collectors.toMap(input -> input.attr("name"), Element::val));
   }
 
-  private Duration parseTime(String time) {
+  private WaitTime parseTime(String time) {
     var parts = time.trim().split(" ");
     int totalSec = 0;
     for (var part : parts) {
       char field = part.charAt(part.length() - 1);
       int number = Integer.parseInt(part.substring(0, part.length() - 1));
-      if (field == 'h') totalSec += number * 3600;
-      if (field == 'm') totalSec += number * 60;
+      if (field == 'h') totalSec += TimeUnit.HOURS.toSeconds(number);
+      if (field == 'm') totalSec += TimeUnit.MINUTES.toSeconds(number);
       if (field == 's') totalSec += number;
     }
-    return Duration.ofSeconds(totalSec);
+    return new WaitTime(totalSec);
   }
 }

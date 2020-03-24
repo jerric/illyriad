@@ -1,10 +1,14 @@
 package info.lliira.illyriad.schedule.building;
 
+import info.lliira.illyriad.common.WaitTime;
+import info.lliira.illyriad.schedule.product.Product;
 import info.lliira.illyriad.schedule.town.Resource;
 
-import java.time.Duration;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class Building {
@@ -18,7 +22,7 @@ public class Building {
   public final int ironCost;
   public final int stoneCost;
   public final int foodConsumption;
-  public final Duration time;
+  public final WaitTime time;
   public final Map<String, String> upgradeFields;
 
   public Building(
@@ -31,7 +35,7 @@ public class Building {
       int ironCost,
       int stoneCost,
       int foodConsumption,
-      Duration time,
+      WaitTime time,
       Map<String, String> upgradeFields) {
     this.name = name;
     this.type = Type.parse(name);
@@ -57,19 +61,23 @@ public class Building {
     MageTower(Resource.Type.Mana),
     ArchitectsOffice(Resource.Type.None),
     Barracks(Resource.Type.None),
-    BookBinder(Resource.Type.None),
-    Brewery(Resource.Type.None),
+    Blacksmith(Product.Type.Sword, Product.Type.Chainmail),
+    BookBinder(Product.Type.Book),
+    Brewery(Product.Type.Beer),
     Carpentry(Resource.Type.None),
-    CommonGround(Resource.Type.None),
+    CommonGround(Product.Type.Cow),
     Consulate(Resource.Type.None),
+    Fletcher(Product.Type.Bow),
+    Forge(Product.Type.Plate),
     Foundry(Resource.Type.None),
     Marketplace(Resource.Type.None),
-    Paddock(Resource.Type.None),
-    Saddlemaker(Resource.Type.None),
-    Spearmaker(Resource.Type.None),
+    Paddock(Product.Type.Horse),
+    Saddlemaker(Product.Type.Saddle),
+    SiegeWorkshop(Product.Type.Siege),
+    Spearmaker(Product.Type.Spear),
     Stonemason(Resource.Type.None),
     Storehouse(Resource.Type.None),
-    Tannery(Resource.Type.None),
+    Tannery(Product.Type.Leather),
     Tavern(Resource.Type.None),
     Vault(Resource.Type.None),
     Warehouse(Resource.Type.None);
@@ -83,9 +91,19 @@ public class Building {
     }
 
     public final Resource.Type resourceType;
+    public final Set<Product.Type> productTypes;
 
     Type(Resource.Type resourceType) {
+      this(resourceType, List.of());
+    }
+
+    Type(Product.Type... productTypes) {
+      this(Resource.Type.None, Arrays.asList(productTypes));
+    }
+
+    Type(Resource.Type resourceType, List<Product.Type> productTypes) {
       this.resourceType = resourceType;
+      this.productTypes = new HashSet<>(productTypes);
     }
   }
 }

@@ -1,8 +1,10 @@
 package info.lliira.illyriad.schedule.town;
 
 import com.google.gson.annotations.SerializedName;
+import info.lliira.illyriad.common.WaitTime;
 import info.lliira.illyriad.common.net.AuthenticatedHttpClient;
 import info.lliira.illyriad.common.net.Authenticator;
+import info.lliira.illyriad.schedule.product.Product;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -74,6 +76,9 @@ public class TownLoader {
     Document document = Jsoup.parse(response.tn);
     parseTowns(document, town);
     parseResources(document, town);
+
+    parseProducts(Jsoup.parse(response.ar), town);
+
     return town;
   }
 
@@ -86,11 +91,13 @@ public class TownLoader {
     return new Progress(construction1, construction2, research1, research2);
   }
 
-  private Optional<Long> parseProgress(Element row) {
+  private Optional<WaitTime> parseProgress(Element row) {
     var span = row.select("td span.progTime");
     if (span.isEmpty()) return Optional.empty();
     var data = span.attr("data").split("\\|");
-    return Optional.of(Long.parseLong(data[1]));
+    double diffInSeconds =
+        Math.ceil((Long.parseLong(data[1]) - System.currentTimeMillis()) / 1000D);
+    return Optional.of(new WaitTime(Math.max(1, Math.round(diffInSeconds))));
   }
 
   private void parseTowns(Document document, Town town) {
@@ -112,11 +119,36 @@ public class TownLoader {
     for (int i = 0; i < amountRow.size(); i++) {
       int amount = Integer.parseInt(amountRow.get(i).attr("data"));
       int rate = Integer.parseInt(rateRow.get(i).attr("data"));
-      town.add(new Resource(type(i), amount, rate));
+      town.add(new Resource(resourceType(i), amount, rate));
     }
   }
 
-  private Resource.Type type(int i) {
+  private void parseProducts(Document document, Town town) {
+    var cells = document.select("tr").first().select("td.resTxt");
+    for (int i = 0; i < cells.size(); i++) {
+      var type = productType(i);
+      var amount = Integer.parseInt(cells.get(i).attr("data"));
+      town.add(new Product(type, amount));
+    }
+  }
+
+  private Product.Type productType(int i) {
+    if (i == 0) return Product.Type.Horse;
+    else if (i == 1) return Product.Type.Cow;
+    else if (i == 2) return Product.Type.Beer;
+    else if (i == 3) return Product.Type.Book;
+    else if (i == 4) return Product.Type.Spear;
+    else if (i == 5) return Product.Type.Sword;
+    else if (i == 6) return Product.Type.Bow;
+    else if (i == 7) return Product.Type.Saddle;
+    else if (i == 8) return Product.Type.Leather;
+    else if (i == 9) return Product.Type.Chainmail;
+    else if (i == 10) return Product.Type.Plate;
+    else if (i == 11) return Product.Type.Siege;
+    else throw new RuntimeException("Unknown mapping to product type: " + i);
+  }
+
+  private Resource.Type resourceType(int i) {
     if (i == 0) return Resource.Type.Gold;
     else if (i == 1) return Resource.Type.Wood;
     else if (i == 2) return Resource.Type.Clay;

@@ -1,5 +1,9 @@
 package info.lliira.illyriad.schedule.town;
 
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 public class Resource {
 
   public final Type type;
@@ -37,6 +41,14 @@ public class Resource {
     Food,
     Gold,
     Mana,
-    Research
+    Research;
+
+    private static Map<String, Type> TYPES =
+        Arrays.stream(values())
+            .collect(Collectors.toMap(type -> type.name().toLowerCase(), type -> type));
+
+    public static Type parse(String name) {
+      return TYPES.getOrDefault(name.toLowerCase(), None);
+    }
   }
 }

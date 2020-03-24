@@ -1,8 +1,10 @@
 package info.lliira.illyriad.schedule.building;
 
 import info.lliira.illyriad.common.Constants;
+import info.lliira.illyriad.common.WaitTime;
 import info.lliira.illyriad.common.net.Authenticator;
 import info.lliira.illyriad.schedule.Scheduler;
+import info.lliira.illyriad.schedule.product.ProductSceduler;
 import info.lliira.illyriad.schedule.town.Resource;
 import info.lliira.illyriad.schedule.town.Town;
 import info.lliira.illyriad.schedule.town.TownEntity;
@@ -17,7 +19,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -59,6 +60,7 @@ public class BuildingScheduler extends Scheduler {
   private final TownLoader townLoader;
   private final BuildingLoader buildingLoader;
   private final BuildingUpgrader buildingUpgrader;
+  private final ProductSceduler productSceduler;
   private final double foodRatio;
   private final double storageRatio;
   private final int maxBuildingLevel;
@@ -69,6 +71,7 @@ public class BuildingScheduler extends Scheduler {
     this.townLoader = new TownLoader(authenticator);
     this.buildingLoader = new BuildingLoader(authenticator);
     this.buildingUpgrader = new BuildingUpgrader(authenticator);
+    this.productSceduler = new ProductSceduler(authenticator);
     this.foodRatio =
         Double.parseDouble(
             properties.getProperty(FOOD_RATIO_FIELD, Double.toString(DEFAULT_FOOD_RATIO)));
@@ -82,23 +85,25 @@ public class BuildingScheduler extends Scheduler {
   }
 
   @Override
-  public long schedule() {
+  public WaitTime schedule() {
     LOG.info("=============== Scheduling Constructions ===============");
     var town = townLoader.loadTown();
-    long minTime = Long.MAX_VALUE;
+    WaitTime minTime = null;
     for (var entity : town.towns.values()) {
-      long wait = schedule(entity);
-      minTime = Math.min(minTime, wait);
+      WaitTime wait = scheduleBuilding(entity);
+      if (minTime == null || wait.compareTo(minTime) < 0) minTime = wait;
+      wait = productSceduler.schedule();
+      if (minTime == null || wait.compareTo(minTime) < 0) minTime = wait;
     }
     return minTime;
   }
 
-  private long schedule(TownEntity entity) {
+  private WaitTime scheduleBuilding(TownEntity entity) {
     var town = townLoader.changeTown(entity);
     LOG.info("***** {} *****", town);
     LOG.info("{} constructions in progress", town.progress.constructionCount());
 
-    Duration waitDuration;
+    WaitTime waitTime;
     if (town.progress.construction1.isEmpty()) {
       var townInfo = townLoader.loadTownInfo();
       LOG.info("Town info: {}", townInfo);
@@ -106,27 +111,22 @@ public class BuildingScheduler extends Scheduler {
       var buildingOptional = findNextToUpgrade(town, townInfo, pendingBuildings);
       assert buildingOptional.isPresent();
       var building = buildingOptional.get();
-      waitDuration = waitTillEnoughResources(town, building);
-      if (waitDuration.getSeconds() == 0) {
+      waitTime = waitTillEnoughResources(town, building);
+      if (waitTime.millis() == 0) {
         LOG.info("Constructing Next building: {} -> level {}", building.name, building.nextLevel);
         buildingUpgrader.upgrade(building);
         savePendingBuildings(entity, building, pendingBuildings);
         // Add 5 sec buffer as the actual time is usually +5 than the estimated time.
-        waitDuration = building.time.plusSeconds(5);
+        waitTime = building.time.addSeconds(5);
       } else {
         LOG.info(
             "Lack resources for Next building: {} -> level {}", building.name, building.nextLevel);
       }
     } else {
-      waitDuration =
-          Duration.ofMillis(
-              Math.max(1, town.progress.constructionTimestamp() - System.currentTimeMillis()));
+      waitTime = town.progress.constructionWaitTime();
     }
-    LOG.info(
-        String.format(
-            "Next construction will start in %02d:%02d:%02d",
-            waitDuration.toHours(), waitDuration.toMinutesPart(), waitDuration.toSecondsPart()));
-    return waitDuration.toMillis();
+    LOG.info("Next construction starts in {}", waitTime);
+    return waitTime;
   }
 
   private LinkedList<Building.Type> loadingPendingBuildings(TownEntity entity) {
@@ -164,12 +164,13 @@ public class BuildingScheduler extends Scheduler {
   private Optional<Building> findNextToUpgrade(
       Town town, TownInfo townInfo, LinkedList<Building.Type> pendingBuildings) {
     var townBuildings = buildingLoader.loadTownBuildings();
-    if (!pendingBuildings.isEmpty()) {
-      var pendingBuilding = townBuildings.get(pendingBuildings.getFirst());
+    var landBuildings = buildingLoader.loadMinLandBuildings();
+    for (var pendingType : pendingBuildings) {
+      var pendingBuilding = townBuildings.get(pendingType);
+      if (pendingBuilding != null) return Optional.of(pendingBuilding);
+      pendingBuilding = landBuildings.get(pendingType.resourceType);
       if (pendingBuilding != null) return Optional.of(pendingBuilding);
     }
-
-    var landBuildings = buildingLoader.loadMinLandBuildings();
 
     // check if the storage is near full, and we need to build more storage
     if (shouldScheduleStorage(town, townInfo)) {
@@ -222,12 +223,12 @@ public class BuildingScheduler extends Scheduler {
     return foodRatio * sum / BUILDING_RESOURCE_TYPES.size() > food.current();
   }
 
-  private Duration waitTillEnoughResources(Town town, Building building) {
+  private WaitTime waitTillEnoughResources(Town town, Building building) {
     long max = waitSeconds(building.woodCost, town.resources.get(Resource.Type.Wood));
     max = Math.max(max, waitSeconds(building.clayCost, town.resources.get(Resource.Type.Clay)));
     max = Math.max(max, waitSeconds(building.ironCost, town.resources.get(Resource.Type.Iron)));
     max = Math.max(max, waitSeconds(building.stoneCost, town.resources.get(Resource.Type.Stone)));
-    return Duration.ofSeconds(max);
+    return new WaitTime(max);
   }
 
   private long waitSeconds(int cost, Resource resource) {
