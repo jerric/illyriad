@@ -2,7 +2,7 @@ package info.lliira.illyriad.map.entity;
 
 public class ValidPlot extends Location<ValidPlot.Builder> implements Comparable<ValidPlot> {
   private static final int MIN_DISTANCE = 9;
-  private static final int MAX_DISTANCE = 40;
+  private static final int MAX_DISTANCE = 50;
   private static final int MIN_DISTANCE_SQ = MIN_DISTANCE * MIN_DISTANCE;
   private static final int MAX_DISTANCE_SQ = MAX_DISTANCE * MAX_DISTANCE;
   public final int totalSum;

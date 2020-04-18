@@ -35,7 +35,6 @@ public class TownInfo {
 
   @Override
   public String toString() {
-    return String.format(
-        "[%s] %s '%s'(%s) pop=%,d, cap=%,d", location, size, cityName, race, population, capacity);
+    return String.format("[%s] %s (pop:%,d cap:%,d)", location, cityName, population, capacity);
   }
 }

@@ -29,11 +29,11 @@ public class CandidateFinder {
     finder.run();
   }
 
-  private static final int CANDIDATE_COUNT = 8;
+  private static final int CANDIDATE_COUNT = 9;
   private static final int SOLUTION_COUNT = 10;
   private static final int RESOURCE_WEIGHT = 10;
-  private static final int FOOD_WEIGHT = 20;
-  private static final int TOP_K_PCT = 15;
+  private static final int FOOD_WEIGHT = 25;
+  private static final int TOP_K_PCT = 17;
 
   private static final Logger LOG = LogManager.getLogger(CandidateFinder.class.getSimpleName());
 

@@ -58,7 +58,7 @@ public class ValidPlotMarker {
   private Map<Point, ValidPlot> loadPlots(Set<Point> invalidPlots) throws SQLException {
     var plots = new HashMap<Point, ValidPlot>();
     String sql =
-        "SELECT x, y, food_sum, total_sum FROM plots WHERE food = 7 AND total= 25 AND sovable = true";
+        "SELECT x, y, food_sum, total_sum FROM plots WHERE food >= 5 AND total= 25 AND sovable = true";
     try (ResultSet resultSet = statement.executeQuery(sql)) {
       while (resultSet.next()) {
         var plot =

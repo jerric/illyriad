@@ -3,7 +3,6 @@ package info.lliira.illyriad.schedule.building;
 import info.lliira.illyriad.common.WaitTime;
 import info.lliira.illyriad.common.net.AuthenticatedHttpClient;
 import info.lliira.illyriad.common.net.Authenticator;
-import info.lliira.illyriad.schedule.town.Resource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jsoup.nodes.Document;
@@ -31,8 +30,8 @@ public class BuildingLoader {
   }
 
   // Loads one of build of each resource with the lowest nextLevel.
-  public Map<Resource.Type, Building> loadMinLandBuildings() {
-    var buildings = new HashMap<Resource.Type, Building>(5);
+  public Map<Building.Type, Building> loadMinLandBuildings() {
+    var buildings = new HashMap<Building.Type, Building>(5);
     for (int index = MIN_BUILDING_INDEX; index <= MAX_BUILDING_INDEX; index++) {
       var buildingOptional = load(true, index);
       if (buildingOptional.isEmpty()) continue;
@@ -41,10 +40,9 @@ public class BuildingLoader {
         LOG.warn("Missing type for building: {}", building.name);
         continue;
       }
-      Resource.Type type = building.type.resourceType;
-      var previous = buildings.get(type);
+      var previous = buildings.get(building.type);
       if (previous == null || previous.nextLevel > building.nextLevel)
-        buildings.put(type, building);
+        buildings.put(building.type, building);
     }
     return buildings;
   }
@@ -68,10 +66,7 @@ public class BuildingLoader {
     var params = Map.of(LAND_PARAM, land ? "1" : "0", BUILDING_PARAM, Integer.toString(index));
     var response = queryClient.call(params);
     assert response.output.isPresent();
-    return parse(response.output.get());
-  }
-
-  private Optional<Building> parse(Document document) {
+    var document = response.output.get();
     String name = document.select("h1").text();
     String levelString = document.select("h2").text().trim().toLowerCase();
     if (!levelString.startsWith("level ")) {

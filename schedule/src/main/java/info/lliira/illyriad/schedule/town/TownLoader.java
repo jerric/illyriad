@@ -4,7 +4,6 @@ import com.google.gson.annotations.SerializedName;
 import info.lliira.illyriad.common.WaitTime;
 import info.lliira.illyriad.common.net.AuthenticatedHttpClient;
 import info.lliira.illyriad.common.net.Authenticator;
-import info.lliira.illyriad.schedule.product.Product;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -38,8 +37,8 @@ public class TownLoader {
     return parseTown(response.output.get());
   }
 
-  public Town changeTown(TownEntity town) {
-    var fields = Map.of(CHANGE_TOWN_FIELD, Integer.toString(town.id));
+  public Town changeTown(int townId) {
+    var fields = Map.of(CHANGE_TOWN_FIELD, Integer.toString(townId));
     var response = channgeTownClient.call(fields);
     assert response.output.isPresent();
     return parseTown(response.output.get());
@@ -134,7 +133,7 @@ public class TownLoader {
 
   private Product.Type productType(int i) {
     if (i == 0) return Product.Type.Horse;
-    else if (i == 1) return Product.Type.Cow;
+    else if (i == 1) return Product.Type.Livestock;
     else if (i == 2) return Product.Type.Beer;
     else if (i == 3) return Product.Type.Book;
     else if (i == 4) return Product.Type.Spear;

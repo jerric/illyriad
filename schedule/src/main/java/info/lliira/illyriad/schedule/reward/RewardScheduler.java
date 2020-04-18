@@ -4,6 +4,7 @@ import info.lliira.illyriad.common.Constants;
 import info.lliira.illyriad.common.WaitTime;
 import info.lliira.illyriad.common.net.AuthenticatedHttpClient;
 import info.lliira.illyriad.common.net.Authenticator;
+import info.lliira.illyriad.common.net.AuthenticatorManager;
 import info.lliira.illyriad.schedule.Scheduler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,7 +24,7 @@ public class RewardScheduler extends Scheduler {
   public static void main(String[] args) throws IOException {
     Properties properties = new Properties();
     properties.load(new FileReader(new File(Constants.PROPERTY_FILE)));
-    var authenticator = new Authenticator(properties);
+    var authenticator = new AuthenticatorManager(properties).first();
     var scheduler = new RewardScheduler(authenticator);
     scheduler.run();
   }
@@ -32,30 +33,38 @@ public class RewardScheduler extends Scheduler {
 
   private static final Logger LOG = LogManager.getLogger(RewardScheduler.class.getSimpleName());
 
+  private final Authenticator authenticator;
   private final AuthenticatedHttpClient.GetHtml queryClient;
   private final AuthenticatedHttpClient.PostHtml claimClient;
 
   public RewardScheduler(Authenticator authenticator) {
     super(RewardScheduler.class.getSimpleName());
+    this.authenticator = authenticator;
     this.queryClient = new AuthenticatedHttpClient.GetHtml(REWARD_URL, authenticator);
     this.claimClient = new AuthenticatedHttpClient.PostHtml(REWARD_URL, authenticator);
   }
 
   @Override
+  public String player() {
+    return authenticator.player();
+  }
+
+  @Override
   public WaitTime schedule() {
-    LOG.info("=============== Scheduling Reward ===============");
     var response = queryClient.call(Map.of());
     assert response.output.isPresent();
     var reward = parsePrestigeReward(response.output.get());
     WaitTime waitTime;
+    String logString = String.format("xxx %s ", player());
     if (reward.hasReward) {
-      LOG.info("Claiming reward...");
       claimClient.call(reward.prestigeFields);
       waitTime = new WaitTime(TimeUnit.DAYS.toSeconds(1));
+      logString += "Daily Reward claimed";
     } else {
       waitTime = reward.waitTime;
-      LOG.info("Reward will be ready in {}", waitTime);
+      logString += String.format("Daily Rewards ready in %s", waitTime);
     }
+    LOG.info(logString);
     return waitTime;
   }
 

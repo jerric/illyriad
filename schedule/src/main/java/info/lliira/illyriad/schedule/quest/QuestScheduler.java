@@ -4,7 +4,7 @@ import info.lliira.illyriad.common.WaitTime;
 import info.lliira.illyriad.common.net.AuthenticatedHttpClient;
 import info.lliira.illyriad.common.net.Authenticator;
 import info.lliira.illyriad.schedule.Scheduler;
-import info.lliira.illyriad.schedule.product.Product;
+import info.lliira.illyriad.schedule.town.Product;
 import info.lliira.illyriad.schedule.town.Resource;
 import info.lliira.illyriad.schedule.town.TownLoader;
 import org.apache.logging.log4j.LogManager;
@@ -27,6 +27,7 @@ public class QuestScheduler extends Scheduler {
 
   private static final Logger LOG = LogManager.getLogger(QuestScheduler.class.getSimpleName());
 
+  private final Authenticator authenticator;
   private final AuthenticatedHttpClient.GetHtml questClient;
   private final AuthenticatedHttpClient.PostHtml acceptQuestClient;
   private final AuthenticatedHttpClient.PostHtml sendTradeRequestClient;
@@ -34,6 +35,7 @@ public class QuestScheduler extends Scheduler {
 
   public QuestScheduler(Authenticator authenticator, TownLoader townLoader) {
     super(QuestScheduler.class.getSimpleName());
+    this.authenticator = authenticator;
     this.questClient = new AuthenticatedHttpClient.GetHtml(QUEST_URL, authenticator);
     this.acceptQuestClient = new AuthenticatedHttpClient.PostHtml(ACCEPT_QUEST_URL, authenticator);
     this.sendTradeRequestClient =
@@ -42,16 +44,23 @@ public class QuestScheduler extends Scheduler {
   }
 
   @Override
+  public String player() {
+    return authenticator.player();
+  }
+
+  @Override
   public WaitTime schedule() {
-    LOG.info("");
     var questStatus = loadQuest();
+    String logString = String.format("%s quest ", authenticator.player());
     if (questStatus.quest.isPresent()) {
       var quest = questStatus.quest.get();
       if (hasResources(quest)) {
         var fields = acceptQuest(quest);
         sendTradeQuest(quest, fields);
-      }
-    }
+        logString += "accepted";
+      } else logString += "lack res";
+    } else logString += "unavailable";
+    LOG.info("{}, wait:{}", logString, questStatus.waitTime);
     return questStatus.waitTime;
   }
 
@@ -88,11 +97,11 @@ public class QuestScheduler extends Scheduler {
       var typeName = src.substring(src.lastIndexOf('/') + 1, src.lastIndexOf('.'));
       var amount = Integer.parseInt(amountRow.get(i).text().trim());
       var resourceType = Resource.Type.parse(typeName);
-      if (resourceType != Resource.Type.None) {
+      if (resourceType != Resource.Type.Unknown) {
         resourcesNeeded.put(resourceType, amount);
       } else {
         var productType = Product.Type.parse(typeName);
-        if (productType != Product.Type.None) {
+        if (productType != Product.Type.Unknown) {
           productsNeeded.put(productType, amount);
         } else {
           LOG.warn("Unknown Resource: {}", src);

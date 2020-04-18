@@ -3,11 +3,9 @@ package info.lliira.illyriad.schedule.building;
 import info.lliira.illyriad.common.Constants;
 import info.lliira.illyriad.common.WaitTime;
 import info.lliira.illyriad.common.net.Authenticator;
-import info.lliira.illyriad.schedule.Scheduler;
-import info.lliira.illyriad.schedule.product.ProductSceduler;
+import info.lliira.illyriad.common.net.AuthenticatorManager;
 import info.lliira.illyriad.schedule.town.Resource;
 import info.lliira.illyriad.schedule.town.Town;
-import info.lliira.illyriad.schedule.town.TownEntity;
 import info.lliira.illyriad.schedule.town.TownInfo;
 import info.lliira.illyriad.schedule.town.TownLoader;
 import org.apache.logging.log4j.LogManager;
@@ -28,22 +26,20 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.stream.Collectors;
 
-public class BuildingScheduler extends Scheduler {
+public class BuildingScheduler {
 
   public static void main(String[] args) throws IOException {
     Properties properties = new Properties();
     properties.load(new FileReader(new File(Constants.PROPERTY_FILE)));
-    var authenticator = new Authenticator(properties);
-    var scheduler = new BuildingScheduler(authenticator, properties);
-    scheduler.run();
+    var authenticator = new AuthenticatorManager(properties).first();
+    var scheduler = new BuildingScheduler(authenticator);
+    var townLoader = new TownLoader(authenticator);
+    scheduler.schedule(
+        townLoader.loadTown(), townLoader.loadTownInfo(), new Params(true, 0.2F, 0.8F));
   }
 
-  private static final String FOOD_RATIO_FIELD = "schedule.food.ratio";
-  private static final String STORAGE_RATIO_FIELD = "schedule.storage.ratio";
-  private static final String MAX_BUILDING_LEVEL_FIELD = "schedule.max.building.level";
-  private static final double DEFAULT_FOOD_RATIO = 0.2;
-  private static final double DEFAULT_STORAGE_RATIO = 0.8;
-  private static final int MAX_BUILDING_LEVEL = 20;
+  private static final int MAX_LEVEL_LIMITED = 12;
+  private static final int MAX_LEVEL_UNLIMITED = 20;
   private static final String PENDING_BUILDING_FILE_PREFIX = "building.pending.";
 
   private static final Map<Resource.Type, Double> BUILDING_RESOURCE_TYPES = new HashMap<>();
@@ -57,81 +53,47 @@ public class BuildingScheduler extends Scheduler {
 
   private static final Logger LOG = LogManager.getLogger(BuildingScheduler.class.getSimpleName());
 
-  private final TownLoader townLoader;
+  private final Authenticator authenticator;
   private final BuildingLoader buildingLoader;
   private final BuildingUpgrader buildingUpgrader;
-  private final ProductSceduler productSceduler;
-  private final double foodRatio;
-  private final double storageRatio;
-  private final int maxBuildingLevel;
   private final Random random;
 
-  public BuildingScheduler(Authenticator authenticator, Properties properties) {
-    super(BuildingScheduler.class.getSimpleName());
-    this.townLoader = new TownLoader(authenticator);
+  public BuildingScheduler(Authenticator authenticator) {
+    this.authenticator = authenticator;
     this.buildingLoader = new BuildingLoader(authenticator);
     this.buildingUpgrader = new BuildingUpgrader(authenticator);
-    this.productSceduler = new ProductSceduler(authenticator);
-    this.foodRatio =
-        Double.parseDouble(
-            properties.getProperty(FOOD_RATIO_FIELD, Double.toString(DEFAULT_FOOD_RATIO)));
-    this.storageRatio =
-        Double.parseDouble(
-            properties.getProperty(STORAGE_RATIO_FIELD, Double.toString(DEFAULT_STORAGE_RATIO)));
-    this.maxBuildingLevel =
-        Integer.parseInt(
-            properties.getProperty(MAX_BUILDING_LEVEL_FIELD, Integer.toString(MAX_BUILDING_LEVEL)));
     this.random = new Random();
   }
 
-  @Override
-  public WaitTime schedule() {
-    LOG.info("=============== Scheduling Constructions ===============");
-    var town = townLoader.loadTown();
-    WaitTime minTime = null;
-    for (var entity : town.towns.values()) {
-      WaitTime wait = scheduleBuilding(entity);
-      if (minTime == null || wait.compareTo(minTime) < 0) minTime = wait;
-      wait = productSceduler.schedule();
-      if (minTime == null || wait.compareTo(minTime) < 0) minTime = wait;
-    }
-    return minTime;
-  }
-
-  private WaitTime scheduleBuilding(TownEntity entity) {
-    var town = townLoader.changeTown(entity);
-    LOG.info("***** {} *****", town);
-    LOG.info("{} constructions in progress", town.progress.constructionCount());
-
+  public WaitTime schedule(Town town, TownInfo townInfo, Params params) {
+    String logString = String.format("+++ %s {%d}%s ", authenticator.player(), town.id(), townInfo);
     WaitTime waitTime;
-    if (town.progress.construction1.isEmpty()) {
-      var townInfo = townLoader.loadTownInfo();
-      LOG.info("Town info: {}", townInfo);
-      var pendingBuildings = loadingPendingBuildings(entity);
-      var buildingOptional = findNextToUpgrade(town, townInfo, pendingBuildings);
+    if (town.progress.building1.isEmpty()) {
+      var pendingBuildings = loadingPendingBuildings(town.id());
+      var buildingOptional = findNextToUpgrade(town, townInfo, pendingBuildings, params);
       assert buildingOptional.isPresent();
       var building = buildingOptional.get();
+      String buildingTitle = String.format("%s lvl:->%d ", building.name, building.nextLevel);
       waitTime = waitTillEnoughResources(town, building);
-      if (waitTime.millis() == 0) {
-        LOG.info("Constructing Next building: {} -> level {}", building.name, building.nextLevel);
+      boolean ready = waitTime.expired();
+      if (ready) {
         buildingUpgrader.upgrade(building);
-        savePendingBuildings(entity, building, pendingBuildings);
+        savePendingBuildings(town.id(), building, pendingBuildings);
         // Add 5 sec buffer as the actual time is usually +5 than the estimated time.
         waitTime = building.time.addSeconds(5);
-      } else {
-        LOG.info(
-            "Lack resources for Next building: {} -> level {}", building.name, building.nextLevel);
       }
+      logString += buildingTitle + (ready ? "upgrading" : "lack res");
     } else {
-      waitTime = town.progress.constructionWaitTime();
+      waitTime = town.progress.buildingWaitTime();
+      logString += "construction pending";
     }
-    LOG.info("Next construction starts in {}", waitTime);
+    LOG.info("{} -> to wait:{}", logString, waitTime);
     return waitTime;
   }
 
-  private LinkedList<Building.Type> loadingPendingBuildings(TownEntity entity) {
+  private LinkedList<Building.Type> loadingPendingBuildings(int townId) {
     var buildings = new LinkedList<Building.Type>();
-    var pendingFile = new File(PENDING_BUILDING_FILE_PREFIX + entity.id);
+    var pendingFile = new File(PENDING_BUILDING_FILE_PREFIX + townId);
     if (pendingFile.exists() && pendingFile.isFile()) {
       try {
         List<String> lines = Files.readAllLines(pendingFile.toPath());
@@ -143,16 +105,15 @@ public class BuildingScheduler extends Scheduler {
         throw new RuntimeException(e);
       }
     }
-    LOG.info("Pending buildings: {}", buildings);
     return buildings;
   }
 
   private void savePendingBuildings(
-      TownEntity entity, Building updated, LinkedList<Building.Type> pendingBuildings) {
+      int townId, Building updated, LinkedList<Building.Type> pendingBuildings) {
     if (!pendingBuildings.isEmpty() && updated.type == pendingBuildings.getFirst()) {
       // the first pending build was scheduled, remove it from the list and save back
       pendingBuildings.pollFirst();
-      var pendingFile = new File(PENDING_BUILDING_FILE_PREFIX + entity.id);
+      var pendingFile = new File(PENDING_BUILDING_FILE_PREFIX + townId);
       try (var writer = new PrintWriter(pendingFile)) {
         pendingBuildings.stream().map(Building.Type::name).forEach(writer::println);
       } catch (FileNotFoundException e) {
@@ -162,28 +123,30 @@ public class BuildingScheduler extends Scheduler {
   }
 
   private Optional<Building> findNextToUpgrade(
-      Town town, TownInfo townInfo, LinkedList<Building.Type> pendingBuildings) {
+      Town town, TownInfo townInfo, LinkedList<Building.Type> pendingBuildings, Params params) {
     var townBuildings = buildingLoader.loadTownBuildings();
     var landBuildings = buildingLoader.loadMinLandBuildings();
-    for (var pendingType : pendingBuildings) {
-      var pendingBuilding = townBuildings.get(pendingType);
-      if (pendingBuilding != null) return Optional.of(pendingBuilding);
-      pendingBuilding = landBuildings.get(pendingType.resourceType);
-      if (pendingBuilding != null) return Optional.of(pendingBuilding);
-    }
 
     // check if the storage is near full, and we need to build more storage
-    if (shouldScheduleStorage(town, townInfo)) {
+    if (shouldScheduleStorage(town, townInfo, params)) {
       var storageBuilding = findStorageBuilding(townBuildings);
       if (storageBuilding.isPresent()) return storageBuilding;
     }
 
     // check if we need to produce food
-    if (shouldScheduleFood(town)) {
-      var foodBuilding = landBuildings.get(Resource.Type.Food);
-      if (foodBuilding != null && foodBuilding.nextLevel <= maxBuildingLevel)
-        return Optional.of(foodBuilding);
+    if (shouldScheduleFood(town, params)) {
+      var foodBuilding = landBuildings.get(Building.Type.Farmyard);
+      if (foodBuilding != null) return Optional.of(foodBuilding);
     }
+
+    for (var pendingType : pendingBuildings) {
+      var pendingBuilding = townBuildings.get(pendingType);
+      if (pendingBuilding != null) return Optional.of(pendingBuilding);
+      pendingBuilding = landBuildings.get(pendingType);
+      if (pendingBuilding != null) return Optional.of(pendingBuilding);
+    }
+
+    var maxBuildingLevel = params.limited ? MAX_LEVEL_LIMITED : MAX_LEVEL_UNLIMITED;
 
     // choose the resource that takes the longest to fill the storage
     Resource.Type minType = Resource.Type.Wood;
@@ -196,7 +159,7 @@ public class BuildingScheduler extends Scheduler {
         longestTime = timeToFull;
       }
     }
-    var landBuilding = landBuildings.get(minType);
+    var landBuilding = landBuildings.get(minType.building);
     if (landBuilding != null && landBuilding.nextLevel <= maxBuildingLevel)
       return Optional.of(landBuilding);
 
@@ -210,7 +173,7 @@ public class BuildingScheduler extends Scheduler {
         : Optional.of(candidates.get(random.nextInt(candidates.size())));
   }
 
-  private boolean shouldScheduleFood(Town town) {
+  private boolean shouldScheduleFood(Town town, Params params) {
     var food = town.resources.get(Resource.Type.Food);
     // keep producing food
     if (food.rate <= 0) return true;
@@ -220,7 +183,7 @@ public class BuildingScheduler extends Scheduler {
     for (Resource.Type type : BUILDING_RESOURCE_TYPES.keySet()) {
       sum += town.resources.get(type).current();
     }
-    return foodRatio * sum / BUILDING_RESOURCE_TYPES.size() > food.current();
+    return params.foodRatio * sum / BUILDING_RESOURCE_TYPES.size() > food.current();
   }
 
   private WaitTime waitTillEnoughResources(Town town, Building building) {
@@ -236,14 +199,14 @@ public class BuildingScheduler extends Scheduler {
     return Math.max(0, Math.round(Math.ceil(1.0 * diff / resource.rate * 3_600)));
   }
 
-  private boolean shouldScheduleStorage(Town town, TownInfo townInfo) {
+  private boolean shouldScheduleStorage(Town town, TownInfo townInfo, Params params) {
     int max = 0;
     for (var resource : town.resources.values()) {
       // skip Gold as it doesn't use storage
       if (resource.type == Resource.Type.Gold) continue;
       max = Math.max(max, resource.current());
     }
-    return 1.0 * max / townInfo.capacity > storageRatio;
+    return 1.0 * max / townInfo.capacity > params.storageRatio;
   }
 
   private Optional<Building> findStorageBuilding(Map<Building.Type, Building> townBuildings) {
@@ -252,5 +215,17 @@ public class BuildingScheduler extends Scheduler {
     if (storehouse != null && warehouse != null) {
       return Optional.of(storehouse.nextLevel > warehouse.nextLevel ? warehouse : storehouse);
     } else return Optional.ofNullable(storehouse);
+  }
+
+  public static class Params {
+    public final boolean limited;
+    public final float foodRatio;
+    public final float storageRatio;
+
+    public Params(boolean limited, float foodRatio, float storageRatio) {
+      this.limited = limited;
+      this.foodRatio = foodRatio;
+      this.storageRatio = storageRatio;
+    }
   }
 }

@@ -1,6 +1,6 @@
 package info.lliira.illyriad.schedule.quest;
 
-import info.lliira.illyriad.schedule.product.Product;
+import info.lliira.illyriad.schedule.town.Product;
 import info.lliira.illyriad.schedule.town.Resource;
 
 import java.util.Map;

@@ -2,6 +2,7 @@ package info.lliira.illyriad.schedule;
 
 import info.lliira.illyriad.common.Constants;
 import info.lliira.illyriad.common.net.Authenticator;
+import info.lliira.illyriad.common.net.AuthenticatorManager;
 
 import java.io.File;
 import java.io.FileReader;
@@ -19,5 +20,8 @@ public final class TestHelper {
     }
   }
 
-  public static final Authenticator AUTHENTICATOR = new Authenticator(PROPERTIES);
+  public static final AuthenticatorManager AUTHENTICATOR_MANAGER =
+      new AuthenticatorManager(PROPERTIES);
+
+  public static final Authenticator AUTHENTICATOR = AUTHENTICATOR_MANAGER.first();
 }

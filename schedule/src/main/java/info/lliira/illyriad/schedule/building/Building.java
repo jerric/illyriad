@@ -1,17 +1,16 @@
 package info.lliira.illyriad.schedule.building;
 
 import info.lliira.illyriad.common.WaitTime;
-import info.lliira.illyriad.schedule.product.Product;
-import info.lliira.illyriad.schedule.town.Resource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class Building {
+  private static final Logger LOG = LogManager.getLogger(Building.class.getSimpleName());
+
   public final String name;
   public final Type type;
   public final int level;
@@ -52,58 +51,46 @@ public class Building {
   }
 
   public enum Type {
-    Lumberjack(Resource.Type.Wood),
-    ClayPit(Resource.Type.Clay),
-    IronMine(Resource.Type.Iron),
-    Quarry(Resource.Type.Stone),
-    Farmyard(Resource.Type.Food),
-    Library(Resource.Type.Research),
-    MageTower(Resource.Type.Mana),
-    ArchitectsOffice(Resource.Type.None),
-    Barracks(Resource.Type.None),
-    Blacksmith(Product.Type.Sword, Product.Type.Chainmail),
-    BookBinder(Product.Type.Book),
-    Brewery(Product.Type.Beer),
-    Carpentry(Resource.Type.None),
-    CommonGround(Product.Type.Cow),
-    Consulate(Resource.Type.None),
-    Fletcher(Product.Type.Bow),
-    Forge(Product.Type.Plate),
-    Foundry(Resource.Type.None),
-    Marketplace(Resource.Type.None),
-    Paddock(Product.Type.Horse),
-    Saddlemaker(Product.Type.Saddle),
-    SiegeWorkshop(Product.Type.Siege),
-    Spearmaker(Product.Type.Spear),
-    Stonemason(Resource.Type.None),
-    Storehouse(Resource.Type.None),
-    Tannery(Product.Type.Leather),
-    Tavern(Resource.Type.None),
-    Vault(Resource.Type.None),
-    Warehouse(Resource.Type.None);
+    Unknown,
+    Lumberjack,
+    ClayPit,
+    IronMine,
+    Quarry,
+    Farmyard,
+    Library,
+    MageTower,
+    ArchitectsOffice,
+    Barracks,
+    Blacksmith,
+    BookBinder,
+    Brewery,
+    Carpentry,
+    CommonGround,
+    Consulate,
+    Fletcher,
+    Forge,
+    Foundry,
+    Marketplace,
+    Paddock,
+    Saddlemaker,
+    SiegeWorkshop,
+    Spearmaker,
+    Stonemason,
+    Storehouse,
+    Tannery,
+    Tavern,
+    Vault,
+    Warehouse;
 
     private static final Map<String, Type> TYPES =
-        Arrays.stream(values()).collect(Collectors.toMap(Type::name, type -> type));
+        Arrays.stream(values())
+            .collect(Collectors.toMap(type -> type.name().toLowerCase(), type -> type));
 
     public static Type parse(String name) {
-      name = name.replaceAll("[\\s']", "");
-      return TYPES.get(name);
-    }
-
-    public final Resource.Type resourceType;
-    public final Set<Product.Type> productTypes;
-
-    Type(Resource.Type resourceType) {
-      this(resourceType, List.of());
-    }
-
-    Type(Product.Type... productTypes) {
-      this(Resource.Type.None, Arrays.asList(productTypes));
-    }
-
-    Type(Resource.Type resourceType, List<Product.Type> productTypes) {
-      this.resourceType = resourceType;
-      this.productTypes = new HashSet<>(productTypes);
+      name = name.replaceAll("[\\s']", "").toLowerCase();
+      if (TYPES.containsKey(name)) return TYPES.get(name);
+      LOG.warn("Invalid Building Type: {}", name);
+      return Unknown;
     }
   }
 }

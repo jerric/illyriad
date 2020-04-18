@@ -93,7 +93,9 @@ public class ResourceSummarizer {
     for (int dy = y - regionRadius; dy <= y + regionRadius; dy++) {
       int diff = regionRadius - Math.abs(y - dy);
       for (int dx = x - diff; dx <= x + diff; dx++) {
-        sumData.add(plots.get(dx, dy));
+        if (dx == x && dy == y) continue;
+        double weight = 1 + (regionRadius - Math.sqrt((dx - x) * (dx - x) + (dy - y) * (dy - y)));
+        sumData.add(plots.get(dx, dy), weight);
       }
     }
     return sumData;
@@ -178,14 +180,14 @@ public class ResourceSummarizer {
       this.totalSum = totalSum;
     }
 
-    void add(PlotData plotData) {
-      foodSum += plotData.food;
-      totalSum += plotData.total;
+    void add(PlotData plotData, double weight) {
+      foodSum += Math.round(plotData.food * weight);
+      totalSum += Math.round(plotData.total * weight);
     }
 
     @Override
     public String toString() {
-      return String.format("S[%s, %s]", foodSum, totalSum);
+      return String.format("S[%,d, %,d]", foodSum, totalSum);
     }
 
     public SumData copy() {

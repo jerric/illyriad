@@ -1,14 +1,14 @@
 package info.lliira.illyriad.schedule;
 
 import info.lliira.illyriad.common.Constants;
-import info.lliira.illyriad.common.net.Authenticator;
-import info.lliira.illyriad.schedule.building.BuildingScheduler;
+import info.lliira.illyriad.common.net.AuthenticatorManager;
 import info.lliira.illyriad.schedule.reward.RewardScheduler;
+import info.lliira.illyriad.schedule.town.TownScheduler;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.List;
+import java.util.ArrayList;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -19,18 +19,21 @@ public final class SchedulerService {
     new SchedulerService().run();
   }
 
-  private final List<Scheduler> schedulers;
+  private final Properties properties;
+  private final AuthenticatorManager authenticatorManager;
 
   public SchedulerService() throws IOException {
-    var properties = new Properties();
+    this.properties = new Properties();
     properties.load(new FileReader(new File(Constants.PROPERTY_FILE)));
-    var authenticator = new Authenticator(properties);
-    schedulers =
-        List.of(
-            new BuildingScheduler(authenticator, properties), new RewardScheduler(authenticator));
+    this.authenticatorManager = new AuthenticatorManager(properties);
   }
 
   public void run() {
+    var schedulers = new ArrayList<Scheduler>();
+    for (var authenticator : authenticatorManager.all()) {
+      schedulers.add(new TownScheduler(authenticator));
+      schedulers.add(new RewardScheduler(authenticator));
+    }
     ExecutorService pool = Executors.newFixedThreadPool(schedulers.size());
     for (var scheduler : schedulers) {
       pool.execute(scheduler);

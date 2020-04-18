@@ -2,6 +2,7 @@ package info.lliira.illyriad.map.crawl;
 
 import info.lliira.illyriad.common.Constants;
 import info.lliira.illyriad.common.net.Authenticator;
+import info.lliira.illyriad.common.net.AuthenticatorManager;
 import info.lliira.illyriad.map.entity.Point;
 import info.lliira.illyriad.map.storage.StorageFactory;
 import org.apache.logging.log4j.LogManager;
@@ -27,7 +28,7 @@ public class MapCrawler {
   public static void main(String[] args) throws IOException {
     Properties properties = new Properties();
     properties.load(new FileReader(new File(Constants.PROPERTY_FILE)));
-    var authenticator = new Authenticator(properties);
+    var authenticator = new AuthenticatorManager(properties).first();
     var storageFactory = new StorageFactory(properties);
     var crawler = new MapCrawler(authenticator, storageFactory, properties);
     crawler.crawl();

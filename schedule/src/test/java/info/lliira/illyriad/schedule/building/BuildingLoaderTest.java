@@ -1,7 +1,6 @@
 package info.lliira.illyriad.schedule.building;
 
 import info.lliira.illyriad.schedule.TestHelper;
-import info.lliira.illyriad.schedule.town.Resource;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -10,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BuildingLoaderTest {
 
-  private BuildingLoader buildingLoader = new BuildingLoader(TestHelper.AUTHENTICATOR);
+  private final BuildingLoader buildingLoader = new BuildingLoader(TestHelper.AUTHENTICATOR);
 
   @Test
   public void loadBuilding() {
@@ -29,7 +28,7 @@ public class BuildingLoaderTest {
       } else {
         assertEquals(building.level + 1, building.nextLevel);
       }
-      assertTrue(building.time.millis() > 0);
+      assertFalse(building.time.expired());
       assertEquals(4, building.upgradeFields.size());
     }
   }
@@ -38,10 +37,10 @@ public class BuildingLoaderTest {
   public void loadMinLandBuildings() {
     var buildings = buildingLoader.loadMinLandBuildings();
     assertEquals(5, buildings.size());
-    assertEquals(Building.Type.Lumberjack, buildings.get(Resource.Type.Wood).type);
-    assertEquals(Building.Type.ClayPit, buildings.get(Resource.Type.Clay).type);
-    assertEquals(Building.Type.IronMine, buildings.get(Resource.Type.Iron).type);
-    assertEquals(Building.Type.Quarry, buildings.get(Resource.Type.Stone).type);
-    assertEquals(Building.Type.Farmyard, buildings.get(Resource.Type.Food).type);
+    assertEquals(Building.Type.Lumberjack, buildings.get(Building.Type.Lumberjack).type);
+    assertEquals(Building.Type.ClayPit, buildings.get(Building.Type.ClayPit).type);
+    assertEquals(Building.Type.IronMine, buildings.get(Building.Type.IronMine).type);
+    assertEquals(Building.Type.Quarry, buildings.get(Building.Type.Quarry).type);
+    assertEquals(Building.Type.Farmyard, buildings.get(Building.Type.Farmyard).type);
   }
 }

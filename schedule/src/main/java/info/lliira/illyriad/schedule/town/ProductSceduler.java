@@ -1,11 +1,11 @@
-package info.lliira.illyriad.schedule.product;
+package info.lliira.illyriad.schedule.town;
 
 import info.lliira.illyriad.common.Constants;
 import info.lliira.illyriad.common.WaitTime;
 import info.lliira.illyriad.common.net.AuthenticatedHttpClient;
 import info.lliira.illyriad.common.net.Authenticator;
+import info.lliira.illyriad.common.net.AuthenticatorManager;
 import info.lliira.illyriad.schedule.building.Building;
-import info.lliira.illyriad.schedule.town.Resource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jsoup.nodes.Element;
@@ -14,24 +14,24 @@ import org.jsoup.select.Elements;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class ProductSceduler {
   public static void main(String[] args) throws IOException {
     Properties properties = new Properties();
     properties.load(new FileReader(new File(Constants.PROPERTY_FILE)));
-    var authenticator = new Authenticator(properties);
+    var authenticator = new AuthenticatorManager(properties).first();
+    var townLoader = new TownLoader(authenticator);
     var scheduler = new ProductSceduler(authenticator);
-    scheduler.schedule();
+    scheduler.schedule(townLoader.loadTownInfo());
   }
 
   private static final String PRODUCT_LIST_URL = "/Town/Production";
   private static final String SCHEDULE_PRODUCT_URL = "/Town/QueueResourceBuild";
-  private static final WaitTime DEFAULT_WAIT = new WaitTime(TimeUnit.MINUTES.toSeconds(10));
   private static final String QUANTITY_FIELD = "Quantity";
   private static final int MIN_CAN_BUILD = 10;
 
@@ -49,33 +49,68 @@ public class ProductSceduler {
             SCHEDULE_PRODUCT_URL, ScheduleResponse.class, Map.of(), authenticator);
   }
 
-  public WaitTime schedule() {
-    LOG.info("=============== Scheduling Products ===============");
+  public WaitTime schedule(TownInfo townInfo) {
     var progresses = parseProgresses();
-    LOG.info("Total {} products.", progresses.size());
-    WaitTime minWait = null;
-    for (var progress : progresses) {
-      var waitTime = progress.waitTime;
-      if (waitTime.millis() == 0) {
-        var requirement = parseRequirement(progress);
-        if (requirement.satisfied()) {
-          LOG.info("Scheduling product in {}: {}", progress.type, requirement.type);
-          waitTime = scheduleProduct(progress, requirement);
-        } else {
-          LOG.info("Not enough resources for product {}", progress.type);
-          waitTime = DEFAULT_WAIT;
-        }
-      }
-      if (minWait == null || minWait.compareTo(waitTime) > 0) minWait = waitTime;
+
+    // Collects the min waitTime from all the ongoing products
+    WaitTime minWaitTime =
+        progresses.values().stream()
+            .map(progress -> progress.waitTime)
+            .filter(waitTime -> !waitTime.expired())
+            .collect(() -> new WaitTime(Long.MAX_VALUE), WaitTime::min, WaitTime::min);
+
+    // Filter idle buildings and convert to products, then sort them, product-dependent ones first,
+    // then by amount
+    var productTypes =
+        progresses.values().stream()
+            .filter(progress -> progress.waitTime.expired())
+            .flatMap(progress -> fetchRequirements(progress).values().stream())
+            .sorted(this::compareRequirements)
+            .map(requirement -> requirement.productType)
+            .collect(Collectors.toList());
+
+    var queuedBuildings = new LinkedHashMap<Building.Type, Product.Type>();
+    boolean insufficientProduct = false;
+    for (var productType : productTypes) {
+      // check if there are new productions in the building
+      if (queuedBuildings.containsKey(productType.buildingType)) continue;
+
+      var progress = progresses.get(productType.buildingType);
+      // Fetch requirement again since the availability may change due to the resource uses.
+      var requirement = fetchRequirements(progress).get(productType);
+      if (requirement.satisfied()) {
+        if (!requirement.needProducts() || !insufficientProduct) {
+          var waitTime = scheduleProduct(progress, requirement);
+          queuedBuildings.put(requirement.buildingType, requirement.productType);
+          minWaitTime = minWaitTime.min(waitTime);
+        } // else skip the rest of the product-dependent ones.
+      } else if (requirement.needProducts()) {
+        insufficientProduct = true;
+      } // else skip the rest of the resource-dependent ones;
     }
-    LOG.info("Next production starts in: {}", minWait);
-    return minWait;
+    String queuedProducts =
+        queuedBuildings.values().stream()
+            .map(Product.Type::toString)
+            .collect(Collectors.joining(","));
+    LOG.info(
+        "*** {} {} scheduled: {}; wait:{}",
+        authenticator.player(),
+        townInfo,
+        queuedProducts,
+        minWaitTime);
+    return minWaitTime;
   }
 
-  private Collection<Progress> parseProgresses() {
+  private int compareRequirements(Requirement left, Requirement right) {
+    if (left.needProducts() && !right.needProducts()) return -1;
+    else if (!left.needProducts() && right.needProducts()) return 1;
+    else return left.amount - right.amount;
+  }
+
+  private Map<Building.Type, Progress> parseProgresses() {
     var response = productListClient.call(Map.of());
     assert response.output.isPresent();
-    Map<Building.Type, Progress> progresses = new HashMap<>();
+    var progresses = new HashMap<Building.Type, Progress>();
     for (var fieldSet : response.output.get().select("fieldset")) {
       var link = fieldSet.select("legend span a");
       var buildingType = Building.Type.parse(link.text().trim());
@@ -91,15 +126,12 @@ public class ProductSceduler {
         waitTime =
             new WaitTime(Math.round(Math.ceil((timestamp - System.currentTimeMillis()) / 1000D)));
       }
-      var existing = progresses.get(buildingType);
-      if (existing == null || existing.waitTime.compareTo(waitTime) < 0) {
-        progresses.put(buildingType, new Progress(buildingType, url, waitTime));
-      }
+      progresses.put(buildingType, new Progress(buildingType, url, waitTime));
     }
-    return progresses.values();
+    return progresses;
   }
 
-  private Requirement parseRequirement(Progress progress) {
+  private Map<Product.Type, Requirement> fetchRequirements(Progress progress) {
     AuthenticatedHttpClient.GetHtml requirementClient =
         new AuthenticatedHttpClient.GetHtml(progress.url, authenticator);
     var response = requirementClient.call(Map.of());
@@ -107,16 +139,14 @@ public class ProductSceduler {
     var document = response.output.get();
     var stored = parseStored(document.select("table.info tr"));
 
+    var requirements = new HashMap<Product.Type, Requirement>();
     var rows = document.select("div.info table tr");
-    Requirement minRequirment = null;
     // skip the title row
     for (int i = 1; i < rows.size(); i++) {
-      var requirement = parseRequirement(rows.get(i), stored);
-      if (minRequirment == null || minRequirment.amount > requirement.amount) {
-        minRequirment = requirement;
-      }
+      var requirement = parseRequirement(progress.buildingType, rows.get(i), stored);
+      requirements.put(requirement.productType, requirement);
     }
-    return minRequirment;
+    return requirements;
   }
 
   private Map<Product.Type, Integer> parseStored(Elements rows) {
@@ -130,8 +160,12 @@ public class ProductSceduler {
     return stored;
   }
 
-  private Requirement parseRequirement(Element row, Map<Product.Type, Integer> stored) {
+  private Requirement parseRequirement(
+      Building.Type buildingType, Element row, Map<Product.Type, Integer> stored) {
     var productType = Product.Type.parse(row.child(1).text());
+    if (productType == Product.Type.Unknown) {
+      LOG.warn("Unknown product type {}", row.child(1).text());
+    }
 
     Map<Product.Type, Integer> productsNeeded = new HashMap<>();
     Map<Resource.Type, Integer> resourcesNeeded = new HashMap<>();
@@ -155,11 +189,13 @@ public class ProductSceduler {
       } else if (typeString.equals("3|1")) {
         productsNeeded.put(Product.Type.Horse, amount);
       } else if (typeString.equals("3|2")) {
-        productsNeeded.put(Product.Type.Cow, amount);
+        productsNeeded.put(Product.Type.Livestock, amount);
       } else if (typeString.equals("3|7")) {
         productsNeeded.put(Product.Type.Book, amount);
       } else if (typeString.equals("4|1")) {
         resourcesNeeded.put(Resource.Type.Gold, amount);
+      } else if (typeString.equals("253")) {
+        productsNeeded.put(Product.Type.Grape, amount);
       } else {
         LOG.warn(
             "Unknown resource/product needed for {}: type={}, amount={}",
@@ -177,7 +213,12 @@ public class ProductSceduler {
     }
 
     return new Requirement(
-        productType, stored.get(productType), resourcesNeeded, productsNeeded, fields);
+        buildingType,
+        productType,
+        stored.getOrDefault(productType, 0),
+        resourcesNeeded,
+        productsNeeded,
+        fields);
   }
 
   private WaitTime scheduleProduct(Progress progress, Requirement requirement) {
@@ -197,31 +238,39 @@ public class ProductSceduler {
   }
 
   private static class Progress {
-    private final Building.Type type;
+    private final Building.Type buildingType;
     private final String url;
     private final WaitTime waitTime;
 
-    private Progress(Building.Type type, String url, WaitTime waitTime) {
-      this.type = type;
+    private Progress(Building.Type buildingType, String url, WaitTime waitTime) {
+      this.buildingType = buildingType;
       this.url = url;
       this.waitTime = waitTime;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("Progress[%s] %s", buildingType, waitTime);
     }
   }
 
   private static class Requirement {
-    private final Product.Type type;
+    private final Building.Type buildingType;
+    private final Product.Type productType;
     private final int amount;
     private final Map<Resource.Type, Integer> resources;
     private final Map<Product.Type, Integer> products;
     private final Map<String, String> fields;
 
     private Requirement(
-        Product.Type type,
+        Building.Type buildingType,
+        Product.Type productType,
         int amount,
         Map<Resource.Type, Integer> resources,
         Map<Product.Type, Integer> products,
         Map<String, String> fields) {
-      this.type = type;
+      this.buildingType = buildingType;
+      this.productType = productType;
       this.amount = amount;
       this.resources = resources;
       this.products = products;
@@ -231,6 +280,10 @@ public class ProductSceduler {
     private boolean satisfied() {
       int canBuild = Integer.parseInt(fields.get(QUANTITY_FIELD));
       return canBuild >= MIN_CAN_BUILD;
+    }
+
+    private boolean needProducts() {
+      return !products.isEmpty();
     }
   }
 

@@ -1,33 +1,37 @@
 package info.lliira.illyriad.common.net;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 
 public class Authenticator implements HttpCookieHandler {
   private static final String LANDING_URL = "/Account/LogOn?noRelog=1";
 
-  private static final String PLAYER_NAME_PROPERTY = "player.name";
-  private static final String PASSWORD_PROPERTY = "password";
-
   private static final String LOGIN_URL_FIELD = "login.url";
   private static final String PLAYER_NAME_FIELD = "PlayerName";
   private static final String PASSWORD_FIELD = "Password";
+
+  private static final Logger LOG = LogManager.getLogger(Authenticator.class.getSimpleName());
 
   private final Map<String, String> cookies;
   private final HttpClient.GetHtml landingClient;
   private final String playerName;
   private final String password;
 
-  public Authenticator(Properties properties) {
-    playerName = properties.getProperty(PLAYER_NAME_PROPERTY);
-    password = properties.getProperty(PASSWORD_PROPERTY);
+  public Authenticator(String playerName, String password) {
+    this.playerName = playerName;
+    this.password = password;
     cookies = new HashMap<>();
     landingClient = new HttpClient.GetHtml(LANDING_URL, Map::of);
+  }
+
+  public String player() {
+    return playerName;
   }
 
   @Override
@@ -39,6 +43,8 @@ public class Authenticator implements HttpCookieHandler {
   }
 
   public void login() {
+    LOG.info("Logging to player {}", playerName);
+
     cookies.clear();
 
     // Call landing page to get login fields

@@ -1,7 +1,5 @@
 package info.lliira.illyriad.schedule.town;
 
-import info.lliira.illyriad.schedule.product.Product;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -12,12 +10,19 @@ public class Town {
   public final Map<Resource.Type, Resource> resources = new LinkedHashMap<>();
   public final Map<Product.Type, Product> products = new LinkedHashMap<>();
 
+  private int id;
+
   public Town(Progress progress) {
     this.progress = progress;
   }
 
+  public int id() {
+    return id;
+  }
+
   public Town add(TownEntity townEntity) {
     towns.put(townEntity.id, townEntity);
+    if (townEntity.current) id = townEntity.id;
     return this;
   }
 

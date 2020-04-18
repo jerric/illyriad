@@ -2,6 +2,7 @@ package info.lliira.illyriad.map;
 
 import info.lliira.illyriad.common.Constants;
 import info.lliira.illyriad.common.net.Authenticator;
+import info.lliira.illyriad.common.net.AuthenticatorManager;
 import info.lliira.illyriad.map.storage.StorageFactory;
 
 import java.io.File;
@@ -20,7 +21,7 @@ public final class TestHelper {
     }
   }
 
-  public static final Authenticator AUTHENTICATOR = new Authenticator(PROPERTIES);
+  public static final Authenticator AUTHENTICATOR = new AuthenticatorManager(PROPERTIES).first();
 
   public static final StorageFactory STORAGE_FACTORY = new StorageFactory(PROPERTIES);
 }

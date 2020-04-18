@@ -1,7 +1,7 @@
 package info.lliira.illyriad.map;
 
 import info.lliira.illyriad.common.Constants;
-import info.lliira.illyriad.common.net.Authenticator;
+import info.lliira.illyriad.common.net.AuthenticatorManager;
 import info.lliira.illyriad.map.analyze.ResourceSummarizer;
 import info.lliira.illyriad.map.analyze.ValidPlotMarker;
 import info.lliira.illyriad.map.crawl.MapCrawler;
@@ -18,7 +18,8 @@ public class MapProcessor {
   public static void main(String[] args) throws IOException, SQLException {
     Properties properties = new Properties();
     properties.load(new FileReader(new File(Constants.PROPERTY_FILE)));
-    var authenticator = new Authenticator(properties);
+
+    var authenticator = new AuthenticatorManager(properties).first();
     var storageFactory = new StorageFactory(properties);
 
     var crawler = new MapCrawler(authenticator, storageFactory, properties);
